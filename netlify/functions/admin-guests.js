@@ -20,7 +20,7 @@ exports.handler = async (event) => {
   const { data, error } = await supabase
     .from('guests')
     .select(`
-      id, name, phone, wants_to_gift, confirmed_at, invite_url,
+      id, name, phone, wants_to_gift, confirmed_at, invite_url, invite_token, checked_in_at,
       payments ( amount, status, paid_at )
     `)
     .order('confirmed_at', { ascending: false })

@@ -6,6 +6,7 @@
   <title>Admin — Aniversário da Janynne</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
   <style>
     body {
       background: #F7F0F3;
@@ -86,7 +87,7 @@
       margin-bottom: 24px;
     }
 
-    @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(5, 1fr); } }
 
     .stat-card {
       background: #fff;
@@ -280,6 +281,108 @@
       padding: 40px;
       color: var(--text-muted);
     }
+
+    /* Scanner button */
+    .btn-scan {
+      padding: 10px 18px;
+      background: var(--primary-dark);
+      border: 1.5px solid var(--primary-dark);
+      color: #fff;
+      border-radius: var(--radius-sm);
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-scan:hover { opacity: 0.88; }
+
+    /* Scanner modal */
+    #scanner-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.92);
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    #scanner-modal.open { display: flex; }
+
+    .scanner-topbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      color: #fff;
+    }
+    .scanner-topbar h2 { font-size: 1.1rem; font-family: 'Nunito', sans-serif; font-weight: 700; }
+    .btn-close-scanner {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    #scanner-reader {
+      width: min(92vw, 420px);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    #scanner-hint {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.85rem;
+      margin-top: 14px;
+      font-family: 'Nunito', sans-serif;
+      text-align: center;
+    }
+
+    /* Check-in result overlay */
+    #checkin-result {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0,0,0,0.85);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #checkin-result.open { display: flex; }
+
+    .checkin-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 36px 28px;
+      text-align: center;
+      max-width: 340px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .checkin-icon { font-size: 3.5rem; display: block; margin-bottom: 16px; }
+    .checkin-name { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--text); margin-bottom: 8px; }
+    .checkin-status { font-family: 'Nunito', sans-serif; font-size: 0.95rem; margin-bottom: 24px; }
+    .checkin-status.ok { color: var(--success); font-weight: 700; }
+    .checkin-status.warn { color: var(--gold); font-weight: 700; }
+    .checkin-status.err { color: var(--error); font-weight: 700; }
+    .btn-checkin-close {
+      padding: 12px 32px;
+      background: var(--primary-dark);
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -342,6 +445,11 @@
           <div class="stat-value" id="stat-pending">—</div>
           <div class="stat-label">Pendentes</div>
         </div>
+        <div class="stat-card">
+          <span class="stat-icon">✅</span>
+          <div class="stat-value" id="stat-present">—</div>
+          <div class="stat-label">Presentes</div>
+        </div>
       </div>
 
       <!-- Controls -->
@@ -355,6 +463,7 @@
         />
         <button class="btn-csv" onclick="downloadCSV()">⬇️ Exportar CSV</button>
         <button class="btn-csv" style="background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark)" onclick="loadGuests()">↺ Atualizar</button>
+        <button class="btn-scan" onclick="openScanner()">📷 Recepcionar</button>
       </div>
 
       <!-- Table -->
@@ -367,6 +476,7 @@
                 <th>Nome</th>
                 <th>WhatsApp</th>
                 <th>Confirmado em</th>
+                <th>Presença</th>
                 <th>PIX</th>
                 <th>Valor</th>
                 <th>Pagamento</th>
@@ -375,7 +485,7 @@
             </thead>
             <tbody id="table-body">
               <tr class="loading-row">
-                <td colspan="8">
+                <td colspan="9">
                   <div style="display:flex;align-items:center;justify-content:center;gap:12px">
                     <span class="spinner" style="color:var(--primary)"></span>
                     Carregando convidados...
@@ -387,6 +497,26 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ===== Scanner Modal ===== -->
+  <div id="scanner-modal">
+    <div class="scanner-topbar">
+      <h2>📷 Escanear Convite</h2>
+      <button class="btn-close-scanner" onclick="closeScanner()">✕</button>
+    </div>
+    <div id="scanner-reader"></div>
+    <p id="scanner-hint">Aponte a câmera para o QR Code do convite</p>
+  </div>
+
+  <!-- ===== Check-in Result ===== -->
+  <div id="checkin-result">
+    <div class="checkin-card">
+      <span class="checkin-icon" id="checkin-icon"></span>
+      <div class="checkin-name" id="checkin-name"></div>
+      <div class="checkin-status" id="checkin-status"></div>
+      <button class="btn-checkin-close" onclick="closeCheckinResult()">OK</button>
     </div>
   </div>
 
@@ -444,7 +574,7 @@
 
     async function loadGuests() {
       const tbody = document.getElementById('table-body')
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="8"><div style="display:flex;align-items:center;justify-content:center;gap:12px"><span class="spinner" style="color:var(--primary)"></span>Atualizando...</div></td></tr>'
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="9"><div style="display:flex;align-items:center;justify-content:center;gap:12px"><span class="spinner" style="color:var(--primary)"></span>Atualizando...</div></td></tr>'
       const res     = await fetch('/api/admin-guests', { headers: { 'x-admin-secret': adminSecret } })
       const data    = await res.json()
       allGuests     = data.guests || []
@@ -460,18 +590,20 @@
       const paid     = guests.filter(g => g.payments?.[0]?.status === 'approved')
       const amount   = paid.reduce((sum, g) => sum + (g.payments[0].amount || 0), 0)
       const pending  = guests.filter(g => g.payments?.[0]?.status === 'pending').length
+      const present  = guests.filter(g => g.checked_in_at).length
 
       document.getElementById('stat-total').textContent   = total
       document.getElementById('stat-pix').textContent     = withPix
       document.getElementById('stat-amount').textContent  = `R$${amount.toFixed(0)}`
       document.getElementById('stat-pending').textContent = pending
+      document.getElementById('stat-present').textContent = present
     }
 
     function renderTable(guests) {
       const tbody = document.getElementById('table-body')
 
       if (!guests.length) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="icon">🎈</span>Nenhum convidado confirmado ainda.</div></td></tr>`
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><span class="icon">🎈</span>Nenhum convidado confirmado ainda.</div></td></tr>`
         return
       }
 
@@ -496,6 +628,10 @@
           statusBadge = '<span class="badge badge-no">—</span>'
         }
 
+        const checkinBadge = g.checked_in_at
+          ? `<span class="badge badge-paid">✓ ${new Date(g.checked_in_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</span>`
+          : '<span class="badge badge-no">—</span>'
+
         const inviteActions = g.invite_url
           ? `<button class="btn-copy-link" onclick="copyLink('${esc(g.invite_url)}')">📋 Copiar</button>
              <a class="btn-view-ticket" href="${esc(g.invite_url)}" target="_blank">🎟️ Ver</a>`
@@ -507,6 +643,7 @@
             <td class="td-name">${esc(g.name)}</td>
             <td class="td-phone"><a href="${waLink}" target="_blank" rel="noopener">${esc(g.phone)}</a></td>
             <td class="td-date">${date}</td>
+            <td>${checkinBadge}</td>
             <td>${g.wants_to_gift ? '<span class="badge badge-paid">Sim</span>' : '<span class="badge badge-no">Não</span>'}</td>
             <td style="font-weight:700;color:var(--text)">${amount}</td>
             <td>${statusBadge}</td>
@@ -562,6 +699,101 @@
       link.download = `convidados-janynne-${new Date().toISOString().slice(0,10)}.csv`
       link.click()
       URL.revokeObjectURL(url)
+    }
+
+    // ---- QR Scanner ----
+    let html5QrCode = null
+    let scannerBusy = false
+
+    function openScanner() {
+      if (!adminSecret) return
+      document.getElementById('scanner-modal').classList.add('open')
+      scannerBusy = false
+
+      html5QrCode = new Html5Qrcode('scanner-reader')
+      html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 260, height: 260 } },
+        onQrScan,
+        () => {}
+      ).catch(err => {
+        console.error('Camera error:', err)
+        document.getElementById('scanner-hint').textContent = 'Não foi possível acessar a câmera.'
+      })
+    }
+
+    async function onQrScan(decodedText) {
+      if (scannerBusy) return
+      scannerBusy = true
+
+      // Stop camera before processing
+      try { await html5QrCode.stop() } catch (_) {}
+      document.getElementById('scanner-modal').classList.remove('open')
+
+      const token = extractToken(decodedText)
+      if (!token) {
+        showCheckinResult('❌', 'QR inválido', 'Este QR Code não é um convite válido.', 'err')
+        return
+      }
+
+      try {
+        const res  = await fetch('/api/checkin-guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+          body: JSON.stringify({ token }),
+        })
+        const data = await res.json()
+
+        if (!res.ok) {
+          showCheckinResult('❌', 'Não encontrado', data.error || 'Convidado não encontrado.', 'err')
+          return
+        }
+
+        if (data.already_checked_in) {
+          const time = new Date(data.checked_in_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
+          showCheckinResult('⚠️', data.guest.name, `Já registrado às ${time}`, 'warn')
+        } else {
+          showCheckinResult('✅', data.guest.name, 'Check-in realizado!', 'ok')
+          // Refresh list so Presença column updates
+          loadGuests()
+        }
+      } catch (err) {
+        console.error('checkin error:', err)
+        showCheckinResult('❌', 'Erro', 'Falha na conexão. Tente novamente.', 'err')
+      }
+    }
+
+    function extractToken(text) {
+      try {
+        const url = new URL(text)
+        return url.searchParams.get('token') || null
+      } catch {
+        // If it looks like a UUID, use directly
+        if (/^[0-9a-f-]{36}$/i.test(text.trim())) return text.trim()
+        return null
+      }
+    }
+
+    function closeScanner() {
+      document.getElementById('scanner-modal').classList.remove('open')
+      if (html5QrCode) {
+        html5QrCode.stop().catch(() => {})
+        html5QrCode = null
+      }
+    }
+
+    function showCheckinResult(icon, name, status, type) {
+      document.getElementById('checkin-icon').textContent   = icon
+      document.getElementById('checkin-name').textContent   = name
+      const el = document.getElementById('checkin-status')
+      el.textContent  = status
+      el.className    = `checkin-status ${type}`
+      document.getElementById('checkin-result').classList.add('open')
+    }
+
+    function closeCheckinResult() {
+      document.getElementById('checkin-result').classList.remove('open')
+      scannerBusy = false
     }
 
     // ---- Auto-login if session exists ----
