@@ -24,34 +24,57 @@ exports.handler = async (event) => {
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-  const { data: guest, error } = await supabase
+  // Try guests table first
+  const { data: guest } = await supabase
     .from('guests')
     .select('id, name, phone, checked_in_at')
     .eq('invite_token', token)
     .single()
 
-  if (error || !guest) {
-    return { statusCode: 404, headers, body: JSON.stringify({ error: 'Convidado não encontrado' }) }
-  }
+  if (guest) {
+    if (guest.checked_in_at) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ guest: { name: guest.name }, already_checked_in: true, checked_in_at: guest.checked_in_at }),
+      }
+    }
 
-  if (guest.checked_in_at) {
+    const now = new Date().toISOString()
+    await supabase.from('guests').update({ checked_in_at: now }).eq('id', guest.id)
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ guest: { name: guest.name }, already_checked_in: true, checked_in_at: guest.checked_in_at }),
+      body: JSON.stringify({ guest: { name: guest.name }, already_checked_in: false, checked_in_at: now }),
+    }
+  }
+
+  // Fall back to companions table
+  const { data: companion } = await supabase
+    .from('companions')
+    .select('id, name, checked_in_at')
+    .eq('invite_token', token)
+    .single()
+
+  if (!companion) {
+    return { statusCode: 404, headers, body: JSON.stringify({ error: 'Convidado não encontrado' }) }
+  }
+
+  if (companion.checked_in_at) {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ guest: { name: companion.name }, already_checked_in: true, checked_in_at: companion.checked_in_at }),
     }
   }
 
   const now = new Date().toISOString()
-
-  await supabase
-    .from('guests')
-    .update({ checked_in_at: now })
-    .eq('id', guest.id)
+  await supabase.from('companions').update({ checked_in_at: now }).eq('id', companion.id)
 
   return {
     statusCode: 200,
     headers,
-    body: JSON.stringify({ guest: { name: guest.name }, already_checked_in: false, checked_in_at: now }),
+    body: JSON.stringify({ guest: { name: companion.name }, already_checked_in: false, checked_in_at: now }),
   }
 }
