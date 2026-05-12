@@ -228,11 +228,15 @@
       })
       list.appendChild(div)
       div.querySelector('.companion-name-input').focus()
+      document.getElementById('btn-add-companion').style.display = 'none'
     })
 
     function removeCompanion(i) {
       const el = document.getElementById(`companion-${i}`)
-      if (el) el.remove()
+      if (el) {
+        el.remove()
+        document.getElementById('btn-add-companion').style.display = 'inline-flex'
+      }
     }
 
     function getCompanions() {
