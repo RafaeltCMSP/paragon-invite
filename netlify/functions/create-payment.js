@@ -1,5 +1,16 @@
 const { createClient } = require('@supabase/supabase-js')
 
+function translateMPError(raw) {
+  if (!raw) return 'Erro ao gerar PIX. Tente novamente.'
+  if (raw.toLowerCase().includes('key enabled for qr'))
+    return 'A conta do Mercado Pago ainda não tem uma chave PIX cadastrada. Acesse o app do MP e cadastre sua chave PIX.'
+  if (raw.toLowerCase().includes('invalid token') || raw.toLowerCase().includes('unauthorized'))
+    return 'Token do Mercado Pago inválido. Verifique as configurações.'
+  if (raw.toLowerCase().includes('amount'))
+    return 'Valor inválido para o PIX.'
+  return 'Erro ao gerar PIX. Tente novamente.'
+}
+
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
 
@@ -47,7 +58,8 @@ exports.handler = async (event) => {
 
     if (!mpRes.ok) {
       console.error('MP error:', JSON.stringify(mpData))
-      const msg = mpData?.message || mpData?.cause?.[0]?.description || 'Erro ao gerar PIX'
+      const raw  = mpData?.cause?.[0]?.description || mpData?.message || ''
+      const msg  = translateMPError(raw)
       return { statusCode: 502, headers, body: JSON.stringify({ error: msg }) }
     }
   } catch (err) {
