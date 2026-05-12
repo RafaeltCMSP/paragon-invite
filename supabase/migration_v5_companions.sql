@@ -1,4 +1,4 @@
--- Migration v5: tabela de acompanhantes por convidado
+-- Migration v5: tabela de acompanhantes com convite individual
 -- Execute no SQL Editor do Supabase
 
 CREATE TABLE IF NOT EXISTS companions (
@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS companions (
   guest_id      UUID NOT NULL REFERENCES guests(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
   wants_to_gift BOOLEAN DEFAULT FALSE,
+  invite_token  UUID DEFAULT gen_random_uuid(),
+  invite_url    TEXT,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -17,15 +17,27 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Token obrigatório' }) }
   }
 
-  const { data, error } = await supabase
+  // Check guests first
+  const { data: guest } = await supabase
     .from('guests')
     .select('name, confirmed_at, invite_token')
     .eq('invite_token', token)
     .single()
 
-  if (error || !data) {
-    return { statusCode: 404, headers, body: JSON.stringify({ error: 'Convite não encontrado' }) }
+  if (guest) {
+    return { statusCode: 200, headers, body: JSON.stringify({ guest }) }
   }
 
-  return { statusCode: 200, headers, body: JSON.stringify({ guest: data }) }
+  // Fall back to companions table
+  const { data: companion } = await supabase
+    .from('companions')
+    .select('name, invite_token')
+    .eq('invite_token', token)
+    .single()
+
+  if (companion) {
+    return { statusCode: 200, headers, body: JSON.stringify({ guest: { name: companion.name, confirmed_at: null, invite_token: companion.invite_token } }) }
+  }
+
+  return { statusCode: 404, headers, body: JSON.stringify({ error: 'Convite não encontrado' }) }
 }

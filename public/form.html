@@ -308,6 +308,9 @@
 
         sessionStorage.setItem('guest_name',  name)
         sessionStorage.setItem('invite_url',  guestData.guest.invite_url || '')
+        sessionStorage.setItem('companions_invites', JSON.stringify(
+          (guestData.companions || []).map(c => ({ name: c.name, invite_url: c.invite_url }))
+        ))
 
         if (!wantsGift) {
           window.location.href = '/success.html'

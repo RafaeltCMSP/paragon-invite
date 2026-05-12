@@ -48,20 +48,30 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Erro ao salvar confirmação' }) }
   }
 
-  // Insert companions if any were provided
+  // Insert companions with individual invite tokens
+  let insertedCompanions = []
   if (Array.isArray(companions) && companions.length > 0) {
     const rows = companions
       .filter(c => c?.name?.trim())
-      .map(c => ({
-        guest_id:      data.id,
-        name:          c.name.trim(),
-        wants_to_gift: !!c.wants_to_gift,
-      }))
+      .map(c => {
+        const token = randomUUID()
+        return {
+          guest_id:      data.id,
+          name:          c.name.trim(),
+          wants_to_gift: !!c.wants_to_gift,
+          invite_token:  token,
+          invite_url:    `${baseUrl}/convite?token=${token}`,
+        }
+      })
     if (rows.length > 0) {
-      const { error: compError } = await supabase.from('companions').insert(rows)
+      const { data: compData, error: compError } = await supabase
+        .from('companions')
+        .insert(rows)
+        .select('id, name, wants_to_gift, invite_url')
       if (compError) console.error('Companions insert error:', compError)
+      insertedCompanions = compData || []
     }
   }
 
-  return { statusCode: 200, headers, body: JSON.stringify({ guest: data }) }
+  return { statusCode: 200, headers, body: JSON.stringify({ guest: data, companions: insertedCompanions }) }
 }

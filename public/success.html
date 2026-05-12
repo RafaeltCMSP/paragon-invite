@@ -37,62 +37,83 @@
       display: none;
     }
 
-    /* Caixa do link de convite */
-    .invite-box {
-      background: var(--gold-light);
-      border: 1.5px solid var(--gold);
-      border-radius: var(--radius-sm);
-      padding: 16px;
+    /* Seção de convites individuais */
+    .invites-section {
       margin: 20px 0;
       text-align: left;
     }
 
-    .invite-box .invite-label {
+    .invites-section-title {
       font-size: 0.8rem;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
       color: var(--gold);
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       display: block;
+      text-align: center;
     }
 
-    .invite-box .invite-link-text {
-      font-size: 0.78rem;
+    .invite-person-card {
+      background: var(--gold-light);
+      border: 1.5px solid var(--gold);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+
+    .invite-person-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .invite-link-text {
+      font-size: 0.75rem;
       color: var(--text-muted);
       word-break: break-all;
       font-family: monospace;
       background: #fff;
-      padding: 8px 10px;
+      padding: 7px 10px;
       border-radius: 8px;
       display: block;
       margin-bottom: 10px;
     }
 
-    .btn-invite-copy {
-      width: 100%;
-      background: var(--gold);
-      color: #fff;
+    .invite-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-invite-copy, .btn-invite-wpp {
+      flex: 1;
       border: none;
       border-radius: 100px;
-      padding: 11px 16px;
+      padding: 10px 12px;
       font-family: 'Nunito', sans-serif;
-      font-size: 0.9rem;
+      font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       transition: opacity 0.15s;
+      text-decoration: none;
     }
 
-    .btn-invite-copy:hover { opacity: 0.88; }
+    .btn-invite-copy { background: var(--gold); color: #fff; }
+    .btn-invite-wpp  { background: #25D366; color: #fff; }
+    .btn-invite-copy:hover, .btn-invite-wpp:hover { opacity: 0.88; }
 
     .invite-hint {
       font-size: 0.78rem;
       color: var(--text-muted);
-      margin-top: 8px;
+      margin-top: 10px;
       line-height: 1.4;
       text-align: center;
     }
@@ -118,15 +139,13 @@
         🎁 Presente recebido com muito carinho! Obrigada de coração. 💕
       </div>
 
-      <!-- Link de convite individual -->
-      <div class="invite-box" id="invite-box" style="display:none">
-        <span class="invite-label">🎟️ Seu convite pessoal</span>
-        <span class="invite-link-text" id="invite-link-display"></span>
-        <button class="btn-invite-copy" onclick="copyInvite()">
-          📋 Copiar link do convite
-        </button>
+      <!-- Convites individuais -->
+      <div class="invites-section" id="invites-section" style="display:none">
+        <span class="invites-section-title">🎟️ Convites Individuais</span>
+        <div id="invites-list"></div>
         <p class="invite-hint">
-          Salve esse link! Abra no dia da festa para mostrar na entrada. 🎉
+          Compartilhe o convite de cada pessoa pelo WhatsApp.<br>
+          Cada um deve apresentar o seu QR Code na entrada. 🎉
         </p>
       </div>
 
@@ -160,13 +179,15 @@
   ">Link copiado! ✓</div>
 
   <script>
-    const name      = sessionStorage.getItem('guest_name')
-    const paid      = sessionStorage.getItem('payment_id')
-    const inviteUrl = sessionStorage.getItem('invite_url')
+    const guestName  = sessionStorage.getItem('guest_name')
+    const paid       = sessionStorage.getItem('payment_id')
+    const inviteUrl  = sessionStorage.getItem('invite_url')
+    const compRaw    = sessionStorage.getItem('companions_invites')
+    const companions = compRaw ? JSON.parse(compRaw) : []
 
-    if (name) {
+    if (guestName) {
       document.getElementById('success-message').innerHTML =
-        `A Janynne fica muito feliz em saber que <span class="name-highlight">${esc(name)}</span> vai estar presente para celebrar esse dia tão especial! 🎂`
+        `A Janynne fica muito feliz em saber que <span class="name-highlight">${esc(guestName)}</span> vai estar presente para celebrar esse dia tão especial! 🎂`
     }
 
     if (paid) {
@@ -177,25 +198,47 @@
       sessionStorage.removeItem('payment_amount')
     }
 
-    if (inviteUrl) {
-      document.getElementById('invite-box').style.display = 'block'
-      document.getElementById('invite-link-display').textContent = inviteUrl
+    // Build invite list: main guest + companions
+    const allInvites = []
+    if (inviteUrl) allInvites.push({ name: guestName || 'Você', invite_url: inviteUrl })
+    companions.forEach(c => { if (c.invite_url) allInvites.push(c) })
+
+    if (allInvites.length > 0) {
+      document.getElementById('invites-section').style.display = 'block'
+      const list = document.getElementById('invites-list')
+      list.innerHTML = allInvites.map((p, i) => {
+        const wppText = encodeURIComponent(
+          `Olá, ${p.name}! 🎉 Aqui está seu convite pessoal para o aniversário da Janynne:\n${p.invite_url}\n\nSalve esse link — você vai precisar dele na entrada da festa! 💕`
+        )
+        return `
+          <div class="invite-person-card">
+            <div class="invite-person-name">🎟️ ${esc(p.name)}</div>
+            <span class="invite-link-text">${esc(p.invite_url)}</span>
+            <div class="invite-actions">
+              <button class="btn-invite-copy" onclick="copyUrl(${i})">📋 Copiar</button>
+              <a class="btn-invite-wpp" href="https://wa.me/?text=${wppText}" target="_blank" rel="noopener">💬 Compartilhar</a>
+            </div>
+          </div>`
+      }).join('')
     }
 
-    function copyInvite() {
-      navigator.clipboard.writeText(inviteUrl).then(() => {
-        const toast = document.getElementById('toast')
-        toast.style.opacity = '1'
-        toast.style.transform = 'translateX(-50%) translateY(0)'
-        setTimeout(() => {
-          toast.style.opacity = '0'
-          toast.style.transform = 'translateX(-50%) translateY(20px)'
-        }, 2500)
-      })
+    function copyUrl(i) {
+      navigator.clipboard.writeText(allInvites[i].invite_url).then(() => showToast('Link copiado! ✓'))
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast')
+      toast.textContent = msg
+      toast.style.opacity = '1'
+      toast.style.transform = 'translateX(-50%) translateY(0)'
+      setTimeout(() => {
+        toast.style.opacity = '0'
+        toast.style.transform = 'translateX(-50%) translateY(20px)'
+      }, 2500)
     }
 
     function esc(str) {
-      return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+      return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
     }
   </script>
 </body>
