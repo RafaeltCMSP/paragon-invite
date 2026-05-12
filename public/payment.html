@@ -59,7 +59,9 @@
 
     <div class="card pop-in">
       <div style="text-align:center">
+        <p id="payment-progress" style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px;display:none"></p>
         <h2 style="font-size:1.5rem; color:var(--primary-dark); margin-bottom:4px">Presente via PIX</h2>
+        <p id="payer-name" style="color:var(--primary-dark); font-size:0.95rem; font-weight:700; display:none"></p>
         <p style="color:var(--text-muted); font-size:0.9rem">Escaneie o QR Code ou copie o código abaixo</p>
         <div class="amount-pill" id="amount-display">R$ —</div>
       </div>
@@ -97,20 +99,98 @@
   <div class="copied-toast" id="toast">Código copiado! ✓</div>
 
   <script>
-    const paymentId = sessionStorage.getItem('payment_id')
-    const qrCode    = sessionStorage.getItem('qr_code')
-    const qrBase64  = sessionStorage.getItem('qr_code_base64')
-    const amount    = sessionStorage.getItem('payment_amount')
+    // Support both new (pending_payments array) and legacy (single payment_id) formats
+    let payments = JSON.parse(sessionStorage.getItem('pending_payments') || 'null')
+    let idx      = parseInt(sessionStorage.getItem('payment_idx') || '0', 10)
 
-    if (!paymentId || !qrCode) {
-      window.location.href = '/form.html'
+    if (!payments) {
+      // Legacy fallback
+      const pid = sessionStorage.getItem('payment_id')
+      const qr  = sessionStorage.getItem('qr_code')
+      if (!pid || !qr) { window.location.href = '/form.html'; throw 0 }
+      payments = [{ payment_id: pid, qr_code: qr, qr_code_base64: sessionStorage.getItem('qr_code_base64'), amount: sessionStorage.getItem('payment_amount') }]
+      idx = 0
     }
 
-    document.getElementById('amount-display').textContent = `R$ ${amount || '—'}`
-    document.getElementById('pix-code').textContent = qrCode
-    document.getElementById('qr-img').src = `data:image/png;base64,${qrBase64}`
+    let pollTimer, countdownTimer
+
+    function loadPayment(i) {
+      clearInterval(pollTimer)
+      clearInterval(countdownTimer)
+
+      const p     = payments[i]
+      const total = payments.length
+
+      // Progress indicator
+      if (total > 1) {
+        document.getElementById('payment-progress').style.display = 'block'
+        document.getElementById('payment-progress').textContent   = `Pagamento ${i + 1} de ${total}`
+        document.getElementById('payer-name').style.display       = 'block'
+        document.getElementById('payer-name').textContent         = p.label || ''
+      }
+
+      document.getElementById('amount-display').textContent = `R$ ${p.amount || '—'}`
+      document.getElementById('pix-code').textContent       = p.qr_code
+      document.getElementById('qr-img').src                 = `data:image/png;base64,${p.qr_code_base64}`
+      document.getElementById('status-badge').className     = 'status-badge'
+      document.getElementById('status-badge').innerHTML     = '<span class="spinner"></span> Aguardando pagamento...'
+      document.getElementById('copy-btn').textContent       = '📋 Copiar Código PIX'
+
+      // Countdown
+      let seconds = 30 * 60
+      const countdownEl = document.getElementById('countdown')
+      document.getElementById('timer').style.display = 'block'
+      countdownEl.textContent = '30:00'
+      countdownTimer = setInterval(() => {
+        seconds--
+        if (seconds <= 0) {
+          clearInterval(countdownTimer)
+          document.getElementById('timer').innerHTML = '⚠️ QR Code expirado. <a href="/form.html" style="color:var(--primary)">Gerar novo</a>'
+          return
+        }
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0')
+        const s = String(seconds % 60).padStart(2, '0')
+        countdownEl.textContent = `${m}:${s}`
+      }, 1000)
+
+      // Poll
+      pollTimer = setInterval(async () => {
+        try {
+          const res  = await fetch(`/api/payment-status?payment_id=${p.payment_id}`)
+          const data = await res.json()
+
+          if (data.status === 'approved') {
+            clearInterval(pollTimer)
+            clearInterval(countdownTimer)
+            const badge = document.getElementById('status-badge')
+            badge.classList.add('approved')
+            const isLast = i + 1 >= payments.length
+            badge.innerHTML = isLast
+              ? '✅ Pagamento confirmado!'
+              : `✅ Pago! Próximo: <strong>${payments[i + 1].label}</strong>...`
+            setTimeout(() => {
+              if (isLast) {
+                window.location.href = '/success.html'
+              } else {
+                idx = i + 1
+                sessionStorage.setItem('payment_idx', String(idx))
+                loadPayment(idx)
+              }
+            }, 1800)
+          } else if (data.status === 'rejected' || data.status === 'cancelled') {
+            clearInterval(pollTimer)
+            clearInterval(countdownTimer)
+            const badge = document.getElementById('status-badge')
+            badge.style.background = '#FEF2F2'
+            badge.style.color      = 'var(--error)'
+            badge.innerHTML        = '❌ Pagamento não aprovado. <a href="/form.html" style="color:var(--primary)">Tentar novamente</a>'
+          }
+        } catch { /* silently retry */ }
+      }, 3000)
+    }
 
     function copyCode() {
+      const qrCode = payments[idx].qr_code
       navigator.clipboard.writeText(qrCode).then(() => {
         const toast = document.getElementById('toast')
         toast.classList.add('show')
@@ -121,42 +201,7 @@
       })
     }
 
-    let seconds = 30 * 60
-    const countdownEl = document.getElementById('countdown')
-    const timerTick = setInterval(() => {
-      seconds--
-      if (seconds <= 0) {
-        clearInterval(timerTick)
-        countdownEl.parentElement.innerHTML = '⚠️ QR Code expirado. <a href="/form.html" style="color:var(--primary)">Gerar novo</a>'
-        return
-      }
-      const m = String(Math.floor(seconds / 60)).padStart(2, '0')
-      const s = String(seconds % 60).padStart(2, '0')
-      countdownEl.textContent = `${m}:${s}`
-    }, 1000)
-
-    const poll = setInterval(async () => {
-      try {
-        const res  = await fetch(`/api/payment-status?payment_id=${paymentId}`)
-        const data = await res.json()
-
-        if (data.status === 'approved') {
-          clearInterval(poll)
-          clearInterval(timerTick)
-          const badge = document.getElementById('status-badge')
-          badge.classList.add('approved')
-          badge.innerHTML = '✅ Pagamento confirmado!'
-          setTimeout(() => { window.location.href = '/success.html' }, 1800)
-        } else if (data.status === 'rejected' || data.status === 'cancelled') {
-          clearInterval(poll)
-          clearInterval(timerTick)
-          const badge = document.getElementById('status-badge')
-          badge.style.background = '#FEF2F2'
-          badge.style.color      = 'var(--error)'
-          badge.innerHTML        = '❌ Pagamento não aprovado. <a href="/form.html" style="color:var(--primary)">Tentar novamente</a>'
-        }
-      } catch { /* silently retry */ }
-    }, 3000)
+    loadPayment(idx)
   </script>
 </body>
 </html>

@@ -693,7 +693,8 @@
             <td colspan="3"><span class="companion-arrow">↳</span>${esc(c.name)}</td>
             <td></td>
             <td>${c.wants_to_gift ? '<span class="badge badge-paid">Sim</span>' : '<span class="badge badge-no">Não</span>'}</td>
-            <td colspan="3"></td>
+            <td colspan="2"></td>
+            <td>${c.invite_url ? `<a class="btn-view-ticket" href="${esc(c.invite_url)}" target="_blank">🎟️ Ver</a>` : ''}</td>
           </tr>`).join('')
 
         return `

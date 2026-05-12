@@ -28,7 +28,7 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body) }
   catch { return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) } }
 
-  const { guest_id, amount, name } = body
+  const { guest_id, amount, name, idempotency_key } = body
 
   if (!guest_id || !amount || Number(amount) <= 0) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'guest_id e amount são obrigatórios' }) }
@@ -42,7 +42,7 @@ exports.handler = async (event) => {
       headers: {
         'Authorization':    `Bearer ${process.env.MP_ACCESS_TOKEN}`,
         'Content-Type':     'application/json',
-        'X-Idempotency-Key': guest_id,
+        'X-Idempotency-Key': idempotency_key || guest_id,
       },
       body: JSON.stringify({
         transaction_amount: Number(amount),

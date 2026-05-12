@@ -22,7 +22,7 @@ exports.handler = async (event) => {
     .select(`
       id, name, phone, wants_to_gift, confirmed_at, invite_url, invite_token, checked_in_at,
       payments ( amount, status, paid_at ),
-      companions ( id, name, wants_to_gift )
+      companions ( id, name, wants_to_gift, invite_url )
     `)
     .order('confirmed_at', { ascending: false })
 
