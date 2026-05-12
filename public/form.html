@@ -36,7 +36,6 @@
           <span class="hint">Usaremos apenas para confirmar sua presença 🤫</span>
         </div>
 
-        <!-- PIX gift card -->
         <div class="gift-card" id="gift-card">
           <label class="gift-toggle">
             <input type="checkbox" id="wants-to-gift" />
@@ -100,8 +99,7 @@
     amountInput.addEventListener('input', (e) => {
       let digits = e.target.value.replace(/\D/g, '')
       if (!digits) { e.target.value = ''; return }
-      const num = (parseInt(digits, 10) / 100).toFixed(2)
-      e.target.value = num.replace('.', ',')
+      e.target.value = (parseInt(digits, 10) / 100).toFixed(2).replace('.', ',')
     })
 
     function setLoading(on) {
@@ -125,7 +123,6 @@
       let ok = true
       const name  = document.getElementById('name').value.trim()
       const phone = document.getElementById('phone').value.replace(/\D/g, '')
-
       if (!name) {
         document.getElementById('name').classList.add('error-input')
         document.getElementById('name-error').classList.add('visible')
@@ -160,7 +157,7 @@
       setLoading(true)
 
       try {
-        const guestRes = await fetch('/api/confirm-guest', {
+        const guestRes  = await fetch('/api/confirm-guest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, phone, wants_to_gift: wantsGift }),
@@ -168,14 +165,15 @@
         const guestData = await guestRes.json()
         if (!guestRes.ok) throw new Error(guestData.error || 'Erro ao confirmar presença')
 
-        sessionStorage.setItem('guest_name', name)
+        sessionStorage.setItem('guest_name',  name)
+        sessionStorage.setItem('invite_url',  guestData.guest.invite_url || '')
 
         if (!wantsGift) {
           window.location.href = '/success.html'
           return
         }
 
-        const payRes = await fetch('/api/create-payment', {
+        const payRes  = await fetch('/api/create-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ guest_id: guestData.guest.id, amount, name }),

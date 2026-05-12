@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meu Convite — Aniversário da Janynne</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/assets/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(160deg, #FDF4F0 0%, #FFF8E6 100%);
+      justify-content: center;
+      padding: 24px 16px 52px;
+    }
+
+    /* ---- Loading ---- */
+    .loading-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 60px 0;
+    }
+
+    .loading-screen .spinner {
+      width: 36px; height: 36px;
+      border-width: 3px;
+      color: var(--primary);
+    }
+
+    /* ---- Ticket ---- */
+    .ticket {
+      width: 100%;
+      max-width: 400px;
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 12px 48px rgba(201,116,138,0.18), 0 0 0 1px rgba(201,169,110,0.15);
+      overflow: hidden;
+    }
+
+    .ticket-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 28px 28px 24px;
+      text-align: center;
+      color: #fff;
+      position: relative;
+    }
+
+    .ticket-header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 24px;
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+    }
+
+    .ticket-header .event-label {
+      font-size: 0.72rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      opacity: 0.85;
+      margin-bottom: 6px;
+    }
+
+    .ticket-header h1 {
+      font-size: 2rem;
+      color: #fff;
+      font-style: italic;
+    }
+
+    .ticket-header .gold-tag {
+      display: inline-block;
+      background: rgba(201,169,110,0.3);
+      border: 1px solid rgba(201,169,110,0.5);
+      color: #FFE4A0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 100px;
+      margin-top: 10px;
+    }
+
+    /* ---- Body ---- */
+    .ticket-body {
+      padding: 28px 28px 0;
+    }
+
+    .guest-greeting {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .guest-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.9rem;
+      font-style: italic;
+      color: var(--primary-dark);
+      margin-bottom: 20px;
+      line-height: 1.15;
+    }
+
+    .confirmed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #EDFBF4;
+      color: var(--success);
+      border: 1px solid #B8EDD4;
+      border-radius: 100px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      margin-bottom: 24px;
+    }
+
+    .ticket-details {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #FFF8F5;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .ticket-detail-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .ticket-detail-row .icon { font-size: 1rem; flex-shrink: 0; }
+
+    /* ---- QR Code ---- */
+    .qr-section {
+      text-align: center;
+      padding-bottom: 24px;
+    }
+
+    .qr-section p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    #qrcode {
+      display: flex;
+      justify-content: center;
+    }
+
+    #qrcode canvas, #qrcode img {
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+
+    /* ---- Tear-off ---- */
+    .ticket-tearoff {
+      border-top: 2px dashed var(--border);
+      margin: 0 -28px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    /* ---- Footer ---- */
+    .ticket-footer {
+      padding: 0 28px 28px;
+    }
+
+    /* ---- Save hint ---- */
+    .save-hint {
+      background: var(--gold-light);
+      border: 1px solid rgba(201,169,110,0.3);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 0.82rem;
+      color: #8B6914;
+      line-height: 1.5;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    /* ---- Error ---- */
+    .error-card {
+      text-align: center;
+      padding: 40px 28px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page" id="app">
+    <!-- Loading -->
+    <div class="loading-screen" id="loading">
+      <div class="spinner" style="width:36px;height:36px;border:3px solid var(--primary-light);border-top-color:var(--primary);border-radius:50%;animation:spin 0.7s linear infinite"></div>
+      <p style="color:var(--text-muted);font-size:0.9rem">Carregando seu convite...</p>
+    </div>
+
+    <!-- Ticket (hidden until loaded) -->
+    <div class="ticket pop-in" id="ticket" style="display:none">
+
+      <div class="ticket-header">
+        <p class="event-label">Convite Especial</p>
+        <h1>Janynne</h1>
+        <div class="gold-tag">✦ Aniversário ✦</div>
+      </div>
+
+      <div class="ticket-body">
+        <p class="guest-greeting">Olá,</p>
+        <p class="guest-name" id="guest-name-display">—</p>
+
+        <div class="confirmed-badge">
+          ✅ Presença Confirmada
+        </div>
+
+        <div class="ticket-details">
+          <div class="ticket-detail-row">
+            <span class="icon">📅</span>
+            <strong>Sábado, 06 de Junho de 2026</strong>
+          </div>
+          <div class="ticket-detail-row">
+            <span class="icon">🕐</span>
+            <span>Durante o dia</span>
+          </div>
+          <div class="ticket-detail-row">
+            <span class="icon">🎶</span>
+            <span>Muita música, diversão e boas energias</span>
+          </div>
+        </div>
+
+        <div class="qr-section">
+          <p>QR Code de verificação</p>
+          <div id="qrcode"></div>
+        </div>
+
+        <div class="ticket-tearoff">
+          🎟️ Apresente este convite na entrada da festa
+        </div>
+      </div>
+
+      <div class="ticket-footer">
+        <a
+          href="https://chat.whatsapp.com/GsAHpwQQv5k79Xg1Y9IFWT?mode=gi_t"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-whatsapp"
+          style="font-size:0.95rem; padding:15px 20px"
+        >
+          💬 Grupo do WhatsApp
+        </a>
+
+        <div class="save-hint">
+          💡 <strong>Salve este link!</strong> Abra no dia da festa e mostre na entrada.
+          No celular: adicione à tela inicial pelo menu do navegador.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Error state -->
+    <div class="card error-card" id="error-state" style="display:none">
+      <div style="font-size:3rem;margin-bottom:12px">😕</div>
+      <h2 style="color:var(--primary-dark);margin-bottom:8px">Convite não encontrado</h2>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px">
+        Este link é inválido ou expirou. Volte ao convite original para confirmar sua presença.
+      </p>
+      <a href="/" class="btn btn-primary">← Voltar ao início</a>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search)
+    const token  = params.get('token')
+
+    if (!token) {
+      showError()
+    } else {
+      loadInvite(token)
+    }
+
+    async function loadInvite(token) {
+      try {
+        const res  = await fetch(`/api/get-invite?token=${encodeURIComponent(token)}`)
+        const data = await res.json()
+
+        if (!res.ok || !data.guest) {
+          showError()
+          return
+        }
+
+        document.getElementById('guest-name-display').textContent = data.guest.name
+
+        new QRCode(document.getElementById('qrcode'), {
+          text:       window.location.href,
+          width:      160,
+          height:     160,
+          colorDark:  '#3D2C35',
+          colorLight: '#ffffff',
+        })
+
+        document.getElementById('loading').style.display = 'none'
+        document.getElementById('ticket').style.display  = 'block'
+
+      } catch {
+        showError()
+      }
+    }
+
+    function showError() {
+      document.getElementById('loading').style.display     = 'none'
+      document.getElementById('error-state').style.display = 'block'
+    }
+  </script>
+</body>
+</html>

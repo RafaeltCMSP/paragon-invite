@@ -1,3 +1,4 @@
+const { randomUUID } = require('crypto')
 const { createClient } = require('@supabase/supabase-js')
 
 const supabase = createClient(
@@ -24,9 +25,20 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nome e telefone são obrigatórios' }) }
   }
 
+  const inviteToken = randomUUID()
+  const baseUrl     = process.env.BASE_URL || 'http://localhost:8888'
+  const inviteUrl   = `${baseUrl}/convite?token=${inviteToken}`
+
   const { data, error } = await supabase
     .from('guests')
-    .insert({ name: name.trim(), phone: phone.trim(), wants_to_gift: !!wants_to_gift, confirmed_at: new Date().toISOString() })
+    .insert({
+      name:         name.trim(),
+      phone:        phone.trim(),
+      wants_to_gift: !!wants_to_gift,
+      confirmed_at:  new Date().toISOString(),
+      invite_token:  inviteToken,
+      invite_url:    inviteUrl,
+    })
     .select()
     .single()
 
