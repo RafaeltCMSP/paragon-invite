@@ -13,35 +13,40 @@
         │
         ▼
 [Landing Page]  (/index.html)
-  └── Data, local, detalhes da festa
+  └── Data, horário (13h–18h), local (Chácara Recanto Verde · Cotia/SP)
         │
         ▼
 [Formulário de Confirmação]  (/form.html)
   ├── Nome completo
   ├── Telefone WhatsApp
-  └── "Quero presentear com PIX 🎁" (opcional)
+  ├── "Quero presentear com PIX 🎁" (opcional) + valor
+  └── Acompanhantes: nome + PIX opcional + valor por pessoa
         │
      ┌──┴──────────────────────────┐
      │ (com PIX)                    │ (sem PIX)
      ▼                              ▼
 [Tela de PIX]  (/payment.html)    [Sucesso direto]
+  ├── "Pagamento X de Y — Nome"          │
   ├── QR Code gerado (Mercado Pago)      │
   ├── Código copia e cola                │
   ├── Countdown 30 min                   │
-  └── Polling de status a cada 3s        │
+  ├── Polling de status a cada 3s        │
+  └── Após pago → próximo PIX ou success │
         │                                │
         ▼                                │
 [Pagamento Confirmado] ◄─────────────────┘
         │
         ▼
 [Página Final]  (/success.html)
-  ├── Link do convite individual
+  ├── Card por pessoa: link individual + Copiar + Compartilhar WhatsApp
   └── Botão: "Entrar no Grupo do WhatsApp 🎉"
         │
         ▼
 [Convite Individual]  (/convite.html?token=UUID)
-  ├── QR Code do convite (gerado no browser)
-  └── Dados do convidado + confirmação
+  ├── Nome do convidado
+  ├── Data: 06/06/2026 · Horário: 13h às 18h
+  ├── Local: Chácara Recanto Verde · Rua Recanto Verde, 1075 · Cotia/SP
+  └── QR Code para check-in na entrada
 ```
 
 ---
@@ -52,10 +57,10 @@ Acesso: `/admin.html` — protegido por senha (`ADMIN_SECRET`)
 
 **Funcionalidades:**
 - Cards de estatísticas: Confirmados / Com PIX / Arrecadado / Pendentes / **Presentes**
-- Tabela completa com todos os convidados e status de pagamento
-- Coluna **Presença** com horário do check-in
+- Tabela com convidados principais + acompanhantes indentados abaixo (`↳`)
+- Cada linha mostra: confirmado em, presença, PIX, valor, status, copiar link, ver convite
 - Busca por nome ou telefone
-- Exportação CSV
+- Exportação CSV (inclui acompanhantes com coluna Tipo)
 - **Scanner de check-in:** câmera ao vivo (`getUserMedia` + `jsQR`) lê o QR Code do convite individual e registra a presença em tempo real
 
 ---
@@ -99,10 +104,12 @@ paragon-invite/
 │       ├── style.css             # Design system (cores, tipografia, componentes)
 │       └── app.js                # (reservado)
 ├── supabase/
-│   ├── schema.sql                # Criação inicial das tabelas guests + payments
-│   ├── migration_v2.sql          # Adiciona invite_token + invite_url
-│   ├── migration_v3_fix_rls.sql  # Corrige políticas RLS para chave anon
-│   └── migration_v4_checkin.sql  # Adiciona checked_in_at para check-in
+│   ├── schema.sql                     # Criação inicial das tabelas guests + payments
+│   ├── migration_v2.sql               # Adiciona invite_token + invite_url
+│   ├── migration_v3_fix_rls.sql       # Corrige políticas RLS para chave anon
+│   ├── migration_v4_checkin.sql       # Adiciona checked_in_at para check-in
+│   ├── migration_v5_companions.sql    # Tabela companions (acompanhantes) com invite próprio
+│   └── migration_v6_companion_payments.sql  # companion_id em payments
 ├── netlify.toml                  # Build config + redirect /api/* → /.netlify/functions/*
 ├── package.json                  # Dependências: @supabase/supabase-js
 └── .env                          # Variáveis locais (gitignored)
@@ -126,12 +133,25 @@ paragon-invite/
 | `checked_in_at` | timestamptz | Data/hora do check-in na festa (scanner) |
 | `created_at` | timestamptz | Criação do registro |
 
+### Tabela `companions`
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | uuid | Identificador único |
+| `guest_id` | uuid | FK → guests.id |
+| `name` | text | Nome do acompanhante |
+| `wants_to_gift` | boolean | Quer dar PIX |
+| `invite_token` | uuid | Token único do convite individual |
+| `invite_url` | text | URL do convite do acompanhante |
+| `created_at` | timestamptz | Criação do registro |
+
 ### Tabela `payments`
 
 | Coluna | Tipo | Descrição |
 |--------|------|-----------|
 | `id` | uuid | Identificador único |
 | `guest_id` | uuid | FK → guests.id |
+| `companion_id` | uuid | FK → companions.id (nulo para pagamentos do convidado principal) |
 | `mp_payment_id` | text | ID do pagamento no Mercado Pago |
 | `amount` | numeric | Valor em reais |
 | `status` | text | `pending` / `approved` / `rejected` / `cancelled` |
@@ -143,10 +163,12 @@ paragon-invite/
 ### Migrations (executar no SQL Editor do Supabase em ordem)
 
 ```
-supabase/schema.sql              ← criação inicial
-supabase/migration_v2.sql        ← invite_token + invite_url
-supabase/migration_v3_fix_rls.sql ← RLS permissiva (chave anon)
-supabase/migration_v4_checkin.sql ← checked_in_at
+supabase/schema.sql                       ← criação inicial (guests + payments)
+supabase/migration_v2.sql                 ← invite_token + invite_url em guests
+supabase/migration_v3_fix_rls.sql         ← RLS permissiva (chave anon)
+supabase/migration_v4_checkin.sql         ← checked_in_at em guests
+supabase/migration_v5_companions.sql      ← tabela companions com invite próprio
+supabase/migration_v6_companion_payments.sql ← companion_id em payments
 ```
 
 ---
