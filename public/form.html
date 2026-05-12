@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Confirmar Presença</title>
+  <title>Confirmar Presença — Aniversário da Janynne</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
 </head>
 <body>
@@ -17,7 +18,7 @@
         Confirmar Presença
       </h2>
       <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:24px">
-        Mal podemos esperar para te ver! Preencha abaixo para confirmarmos seu lugar. 💕
+        A Janynne mal pode esperar para te ver! Preencha abaixo para confirmarmos seu lugar. 💕
       </p>
 
       <form id="confirm-form" novalidate>
@@ -80,7 +81,6 @@
     const btnSpinner  = document.getElementById('btn-spinner')
     const errorBanner = document.getElementById('error-banner')
 
-    // Toggle gift section
     giftCheck.addEventListener('change', () => {
       const on = giftCheck.checked
       giftCard.classList.toggle('active', on)
@@ -88,7 +88,6 @@
       if (on) amountInput.focus()
     })
 
-    // Brazilian phone mask
     document.getElementById('phone').addEventListener('input', (e) => {
       let v = e.target.value.replace(/\D/g, '').slice(0, 11)
       if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3')
@@ -98,7 +97,6 @@
       e.target.value = v
     })
 
-    // Amount mask (currency)
     amountInput.addEventListener('input', (e) => {
       let digits = e.target.value.replace(/\D/g, '')
       if (!digits) { e.target.value = ''; return }
@@ -154,15 +152,14 @@
       clearErrors()
       if (!validate()) return
 
-      const name        = document.getElementById('name').value.trim()
-      const phone       = document.getElementById('phone').value.trim()
-      const wantsGift   = giftCheck.checked
-      const amount      = wantsGift ? parseFloat(amountInput.value.replace(',', '.')) : null
+      const name      = document.getElementById('name').value.trim()
+      const phone     = document.getElementById('phone').value.trim()
+      const wantsGift = giftCheck.checked
+      const amount    = wantsGift ? parseFloat(amountInput.value.replace(',', '.')) : null
 
       setLoading(true)
 
       try {
-        // 1. Confirm guest
         const guestRes = await fetch('/api/confirm-guest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -178,7 +175,6 @@
           return
         }
 
-        // 2. Create PIX payment
         const payRes = await fetch('/api/create-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -187,10 +183,10 @@
         const payData = await payRes.json()
         if (!payRes.ok) throw new Error(payData.error || 'Erro ao gerar PIX')
 
-        sessionStorage.setItem('payment_id',       String(payData.payment_id))
-        sessionStorage.setItem('qr_code',          payData.qr_code)
-        sessionStorage.setItem('qr_code_base64',   payData.qr_code_base64)
-        sessionStorage.setItem('payment_amount',   amount.toFixed(2).replace('.', ','))
+        sessionStorage.setItem('payment_id',     String(payData.payment_id))
+        sessionStorage.setItem('qr_code',        payData.qr_code)
+        sessionStorage.setItem('qr_code_base64', payData.qr_code_base64)
+        sessionStorage.setItem('payment_amount', amount.toFixed(2).replace('.', ','))
 
         window.location.href = '/payment.html'
 

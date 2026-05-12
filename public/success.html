@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Até logo! 🎉</title>
+  <title>Até logo! 🎉 — Aniversário da Janynne</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
   <style>
     body { justify-content: center; padding: 24px 16px 48px; }
 
     .heart-container {
-      font-size: 4rem;
+      font-size: 3.5rem;
       text-align: center;
       margin-bottom: 8px;
-      animation: heartbeat 1.2s ease infinite;
+      animation: heartbeat 1.3s ease infinite;
+      display: block;
     }
 
     @keyframes heartbeat {
       0%, 100% { transform: scale(1); }
-      50%       { transform: scale(1.12); }
+      50%       { transform: scale(1.1); }
     }
 
     .success-card { text-align: center; }
@@ -32,24 +34,39 @@
       border: 1px solid #B8EDD4;
       border-radius: var(--radius-sm);
       padding: 14px 18px;
-      margin: 20px 0;
+      margin: 16px 0;
       font-size: 0.9rem;
       color: var(--success);
       font-weight: 600;
       display: none;
     }
 
-    .whatsapp-btn {
-      font-size: 1.05rem;
-      padding: 18px 28px;
-      margin-top: 8px;
+    .monogram-small {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+      background: var(--gold-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      position: relative;
     }
 
-    .footer-note {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      margin-top: 20px;
-      text-align: center;
+    .monogram-small .crown-sm {
+      position: absolute;
+      top: -10px;
+      font-size: 0.9rem;
+    }
+
+    .monogram-small .j-sm {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-style: italic;
+      color: var(--gold);
+      line-height: 1;
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -58,6 +75,12 @@
     <div class="deco-header">🎊 🎉 🎊</div>
 
     <div class="card success-card pop-in">
+
+      <div class="monogram-small">
+        <span class="crown-sm">👑</span>
+        <span class="j-sm">J</span>
+      </div>
+
       <div class="heart-container">💕</div>
 
       <div class="divider"></div>
@@ -67,22 +90,23 @@
       </h1>
 
       <p class="success-msg" style="margin-top:12px" id="success-message">
-        Estamos muito felizes que você vai estar com a gente para
-        celebrar esse dia tão especial! 🎂
+        A Janynne fica muito feliz em saber que você vai estar presente
+        para celebrar esse dia tão especial! 🎂
       </p>
 
       <div class="gift-confirmed" id="gift-confirmed">
         🎁 Presente recebido com muito carinho! Obrigada de coração. 💕
       </div>
 
-      <div class="divider" style="margin-top:24px"></div>
+      <div class="divider" style="margin-top:20px"></div>
 
-      <p style="font-size:0.92rem; color:var(--text-muted); margin:16px 0 20px">
-        Agora é só entrar no grupo do WhatsApp para ficar por dentro de todos os detalhes da festa. Mal podemos esperar para te ver! 🥳
+      <p style="font-size:0.92rem; color:var(--text-muted); margin:16px 0 20px; line-height:1.65">
+        Agora é só entrar no grupo do WhatsApp para ficar por dentro
+        de todos os detalhes da festa. Mal podemos esperar para te ver! 🥳
       </p>
 
       <!--
-        PERSONALIZE: Substitua o link abaixo pelo link real do seu grupo do WhatsApp.
+        PERSONALIZE: Substitua o link abaixo pelo link real do grupo do WhatsApp.
         Formato: https://chat.whatsapp.com/CODIGO_DO_GRUPO
       -->
       <a
@@ -90,14 +114,15 @@
         href="https://chat.whatsapp.com/SEU_GRUPO_AQUI"
         target="_blank"
         rel="noopener noreferrer"
-        class="btn btn-whatsapp whatsapp-btn"
+        class="btn btn-whatsapp"
+        style="font-size:1rem; padding:18px 28px"
       >
         💬 Entrar no Grupo do WhatsApp
       </a>
     </div>
 
-    <p class="footer-note">
-      Até lá! Com amor 💗
+    <p style="font-size:0.78rem; color:var(--text-muted); text-align:center; margin-top:20px">
+      Com amor da família da Janynne 💗
     </p>
   </div>
 
@@ -107,7 +132,7 @@
 
     if (name) {
       document.getElementById('success-message').innerHTML =
-        `Estamos muito felizes que <span class="name-highlight">${escapeHtml(name)}</span> vai estar com a gente para celebrar esse dia tão especial! 🎂`
+        `A Janynne fica muito feliz em saber que <span class="name-highlight">${escapeHtml(name)}</span> vai estar presente para celebrar esse dia tão especial! 🎂`
     }
 
     if (paid) {
@@ -119,7 +144,7 @@
     }
 
     function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
+      return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
     }
   </script>
 </body>

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fazer o Presente via PIX</title>
+  <title>Presente via PIX — Aniversário da Janynne</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
   <style>
     .amount-pill {
@@ -41,6 +42,7 @@
       opacity: 0;
       transition: all 0.3s;
       pointer-events: none;
+      white-space: nowrap;
     }
 
     .copied-toast.show {
@@ -55,14 +57,14 @@
 
     <div class="deco-header" style="padding-top:8px">🎁</div>
 
-    <div class="card pop-in" id="payment-card">
+    <div class="card pop-in">
       <div style="text-align:center">
         <h2 style="font-size:1.5rem; color:var(--primary-dark); margin-bottom:4px">Presente via PIX</h2>
         <p style="color:var(--text-muted); font-size:0.9rem">Escaneie o QR Code ou copie o código abaixo</p>
         <div class="amount-pill" id="amount-display">R$ —</div>
       </div>
 
-      <div class="qr-wrapper" id="qr-wrapper">
+      <div class="qr-wrapper">
         <img id="qr-img" src="" alt="QR Code PIX" />
       </div>
 
@@ -95,10 +97,10 @@
   <div class="copied-toast" id="toast">Código copiado! ✓</div>
 
   <script>
-    const paymentId  = sessionStorage.getItem('payment_id')
-    const qrCode     = sessionStorage.getItem('qr_code')
-    const qrBase64   = sessionStorage.getItem('qr_code_base64')
-    const amount     = sessionStorage.getItem('payment_amount')
+    const paymentId = sessionStorage.getItem('payment_id')
+    const qrCode    = sessionStorage.getItem('qr_code')
+    const qrBase64  = sessionStorage.getItem('qr_code_base64')
+    const amount    = sessionStorage.getItem('payment_amount')
 
     if (!paymentId || !qrCode) {
       window.location.href = '/form.html'
@@ -119,7 +121,6 @@
       })
     }
 
-    // Countdown timer (30 min)
     let seconds = 30 * 60
     const countdownEl = document.getElementById('countdown')
     const timerTick = setInterval(() => {
@@ -134,7 +135,6 @@
       countdownEl.textContent = `${m}:${s}`
     }, 1000)
 
-    // Poll payment status every 3s
     const poll = setInterval(async () => {
       try {
         const res  = await fetch(`/api/payment-status?payment_id=${paymentId}`)
@@ -143,11 +143,9 @@
         if (data.status === 'approved') {
           clearInterval(poll)
           clearInterval(timerTick)
-
           const badge = document.getElementById('status-badge')
           badge.classList.add('approved')
           badge.innerHTML = '✅ Pagamento confirmado!'
-
           setTimeout(() => { window.location.href = '/success.html' }, 1800)
         } else if (data.status === 'rejected' || data.status === 'cancelled') {
           clearInterval(poll)

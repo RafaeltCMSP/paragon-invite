@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E0C06A"/>
+      <stop offset="100%" stop-color="#B8903A"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF8E6"/>
+      <stop offset="100%" stop-color="#FDF0E8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Círculo fundo dourado -->
+  <circle cx="32" cy="32" r="31" fill="url(#goldGrad)"/>
+  <!-- Círculo interno creme -->
+  <circle cx="32" cy="32" r="26" fill="url(#bgGrad)"/>
+
+  <!-- Coroa -->
+  <polygon points="14,30 18,20 26,26 32,16 38,26 46,20 50,30" fill="#C9A050"/>
+  <rect x="14" y="28" width="36" height="5" rx="2" fill="#C9A050"/>
+
+  <!-- Letra J -->
+  <text x="32" y="52"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="26"
+        font-style="italic"
+        font-weight="bold"
+        fill="#C9A050">J</text>
+</svg>
