@@ -20,7 +20,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) }
   }
 
-  const { name, phone, wants_to_gift } = body
+  const { name, phone, wants_to_gift, companions = [] } = body
 
   if (!name || !phone) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nome e telefone são obrigatórios' }) }
@@ -46,6 +46,21 @@ exports.handler = async (event) => {
   if (error) {
     console.error('Supabase error:', error)
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Erro ao salvar confirmação' }) }
+  }
+
+  // Insert companions if any were provided
+  if (Array.isArray(companions) && companions.length > 0) {
+    const rows = companions
+      .filter(c => c?.name?.trim())
+      .map(c => ({
+        guest_id:      data.id,
+        name:          c.name.trim(),
+        wants_to_gift: !!c.wants_to_gift,
+      }))
+    if (rows.length > 0) {
+      const { error: compError } = await supabase.from('companions').insert(rows)
+      if (compError) console.error('Companions insert error:', compError)
+    }
   }
 
   return { statusCode: 200, headers, body: JSON.stringify({ guest: data }) }

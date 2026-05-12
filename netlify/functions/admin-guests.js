@@ -21,7 +21,8 @@ exports.handler = async (event) => {
     .from('guests')
     .select(`
       id, name, phone, wants_to_gift, confirmed_at, invite_url, invite_token, checked_in_at,
-      payments ( amount, status, paid_at )
+      payments ( amount, status, paid_at ),
+      companions ( id, name, wants_to_gift )
     `)
     .order('confirmed_at', { ascending: false })
 

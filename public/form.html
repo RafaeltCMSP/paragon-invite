@@ -6,6 +6,102 @@
   <title>Confirmar Presença — Aniversário da Janynne</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
+  <style>
+    .companions-section {
+      margin-top: 20px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: #FDFAF8;
+    }
+
+    .companions-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .companions-header strong {
+      font-size: 0.95rem;
+      color: var(--text);
+      display: block;
+    }
+
+    .companions-header .hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .btn-add-companion {
+      padding: 8px 14px;
+      background: var(--primary-light);
+      border: 1.5px solid var(--primary);
+      color: var(--primary-dark);
+      border-radius: 100px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn-add-companion:hover { background: var(--primary); color: #fff; }
+
+    #companions-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+    .companion-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+
+    .companion-name-input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      outline: none;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      background: transparent;
+    }
+
+    .companion-name-input::placeholder { color: var(--text-muted); }
+
+    .companion-pix-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .companion-pix-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+    .btn-remove-companion {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .btn-remove-companion:hover { color: var(--error); }
+  </style>
 </head>
 <body>
   <div class="page">
@@ -58,6 +154,18 @@
           </div>
         </div>
 
+        <!-- Acompanhantes -->
+        <div class="companions-section">
+          <div class="companions-header">
+            <div>
+              <strong>🧑‍🤝‍🧑 Vai trazer alguém?</strong>
+              <span class="hint">Adicione os acompanhantes (opcional)</span>
+            </div>
+            <button type="button" class="btn-add-companion" id="btn-add-companion">+ Adicionar</button>
+          </div>
+          <div id="companions-list"></div>
+        </div>
+
         <div class="error-banner" id="error-banner"></div>
 
         <button type="submit" class="btn btn-primary" id="submit-btn">
@@ -70,6 +178,39 @@
   </div>
 
   <script>
+    // ---- Companions ----
+    let companionCount = 0
+
+    document.getElementById('btn-add-companion').addEventListener('click', () => {
+      const list = document.getElementById('companions-list')
+      const i    = companionCount++
+      const div  = document.createElement('div')
+      div.className = 'companion-item'
+      div.id        = `companion-${i}`
+      div.innerHTML = `
+        <input type="text" class="companion-name-input" placeholder="Nome do acompanhante" autocomplete="off" />
+        <label class="companion-pix-label">
+          <input type="checkbox" class="companion-gift" />
+          PIX 🎁
+        </label>
+        <button type="button" class="btn-remove-companion" onclick="removeCompanion(${i})">✕</button>
+      `
+      list.appendChild(div)
+      div.querySelector('.companion-name-input').focus()
+    })
+
+    function removeCompanion(i) {
+      const el = document.getElementById(`companion-${i}`)
+      if (el) el.remove()
+    }
+
+    function getCompanions() {
+      return Array.from(document.querySelectorAll('.companion-item')).map(item => ({
+        name:          item.querySelector('.companion-name-input').value.trim(),
+        wants_to_gift: item.querySelector('.companion-gift').checked,
+      })).filter(c => c.name)
+    }
+
     const form        = document.getElementById('confirm-form')
     const giftCheck   = document.getElementById('wants-to-gift')
     const giftCard    = document.getElementById('gift-card')
@@ -160,7 +301,7 @@
         const guestRes  = await fetch('/api/confirm-guest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, phone, wants_to_gift: wantsGift }),
+          body: JSON.stringify({ name, phone, wants_to_gift: wantsGift, companions: getCompanions() }),
         })
         const guestData = await guestRes.json()
         if (!guestRes.ok) throw new Error(guestData.error || 'Erro ao confirmar presença')
