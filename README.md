@@ -1,50 +1,62 @@
-# 🎂 Paragon Invite — Sistema de Confirmação de Presença com PIX
+# 🎂 Paragon Invite — Convite Digital com PIX + Check-in
 
-> Sistema de convite digital para aniversário com confirmação de presença e presenteio via PIX integrado ao Mercado Pago.
+> Sistema de convite digital para aniversário: confirmação de presença, presenteio via PIX (Mercado Pago), convite individual com QR Code e painel administrativo com scanner de check-in.
 
----
-
-## Visão Geral
-
-O **Paragon Invite** é uma aplicação web pensada para tornar o processo de confirmação de presença em festas de aniversário mais fácil, bonito e moderno. O convidado recebe um link pelo WhatsApp, acessa no celular e em poucos passos confirma a presença e, se quiser, envia um presente via PIX — tudo sem sair do navegador.
+**URL de produção:** https://jannyinvite.netlify.app
 
 ---
 
 ## Fluxo da Aplicação
 
 ```
-[Convite no WhatsApp]
+[Link no WhatsApp]
         │
         ▼
-[Landing Page do Convite]
-  └── Apresentação do evento (data, local, mensagem especial)
+[Landing Page]  (/index.html)
+  └── Data, local, detalhes da festa
         │
         ▼
-[Formulário de Confirmação]
+[Formulário de Confirmação]  (/form.html)
   ├── Nome completo
-  ├── Telefone (WhatsApp)
-  └── Checkbox destacado: "Quero presentear com PIX 🎁"
+  ├── Telefone WhatsApp
+  └── "Quero presentear com PIX 🎁" (opcional)
         │
-     ┌──┴──────────────────────┐
-     │ (checkbox marcado)       │ (checkbox desmarcado)
-     ▼                          ▼
-[Tela de PIX]            [Confirmação direta]
-  ├── Campo: valor               │
-  ├── QR Code gerado             │
-  └── Código Copia e Cola        │
-        │                        │
-        ▼                        │
-[Aguardando Pagamento]           │
-  └── Polling status Mercado Pago│
-        │                        │
-        ▼                        │
-[Pagamento Confirmado] ◄─────────┘
+     ┌──┴──────────────────────────┐
+     │ (com PIX)                    │ (sem PIX)
+     ▼                              ▼
+[Tela de PIX]  (/payment.html)    [Sucesso direto]
+  ├── QR Code gerado (Mercado Pago)      │
+  ├── Código copia e cola                │
+  ├── Countdown 30 min                   │
+  └── Polling de status a cada 3s        │
+        │                                │
+        ▼                                │
+[Pagamento Confirmado] ◄─────────────────┘
         │
         ▼
-[Página Final]
-  ├── Mensagem especial personalizada
+[Página Final]  (/success.html)
+  ├── Link do convite individual
   └── Botão: "Entrar no Grupo do WhatsApp 🎉"
+        │
+        ▼
+[Convite Individual]  (/convite.html?token=UUID)
+  ├── QR Code do convite (gerado no browser)
+  └── Dados do convidado + confirmação
 ```
+
+---
+
+## Painel Administrativo
+
+Acesso: `/admin.html` — protegido por senha (`ADMIN_SECRET`)
+
+**Funcionalidades:**
+- Cards de estatísticas: Confirmados / Com PIX / Arrecadado / Pendentes / **Presentes**
+- Tabela completa com todos os convidados e status de pagamento
+- Coluna **Presença** com horário do check-in
+- Busca por nome ou telefone
+- Exportação CSV
+- **Scanner de check-in:** câmera ao vivo (`getUserMedia` + `jsQR`) lê o QR Code do convite individual e registra a presença em tempo real
 
 ---
 
@@ -52,11 +64,13 @@ O **Paragon Invite** é uma aplicação web pensada para tornar o processo de co
 
 | Camada | Tecnologia |
 |--------|-----------|
-| **Backend** | Node.js + Netlify Functions (serverless) |
-| **Frontend** | HTML + CSS + JavaScript (Vanilla) |
-| **Banco de dados** | Supabase (PostgreSQL) |
-| **Pagamentos** | Mercado Pago API (PIX) |
-| **Hospedagem** | Netlify (frontend + functions no mesmo deploy) |
+| **Backend** | Node.js 18 + Netlify Functions (serverless) |
+| **Frontend** | HTML + CSS + JavaScript vanilla |
+| **Banco de dados** | Supabase (PostgreSQL + RLS) |
+| **Pagamentos** | Mercado Pago REST API (PIX) — sem SDK |
+| **QR Code (geração)** | qrcodejs (CDN) — `/convite.html` |
+| **QR Code (leitura)** | jsQR (CDN) — scanner do admin |
+| **Hospedagem** | Netlify |
 
 ---
 
@@ -66,22 +80,32 @@ O **Paragon Invite** é uma aplicação web pensada para tornar o processo de co
 paragon-invite/
 ├── netlify/
 │   └── functions/
-│       ├── confirm-guest.js      # Salva convidado e confirmação no Supabase
-│       ├── create-payment.js     # Gera cobrança PIX no Mercado Pago
-│       ├── payment-status.js     # Consulta status do pagamento (polling)
-│       └── mp-webhook.js         # Webhook de notificação do Mercado Pago
+│       ├── confirm-guest.js      # Salva convidado, gera invite_token + invite_url
+│       ├── create-payment.js     # Cria cobrança PIX no Mercado Pago (REST direto)
+│       ├── payment-status.js     # Polling de status (Supabase → Mercado Pago)
+│       ├── mp-webhook.js         # Webhook HMAC-SHA256 do Mercado Pago
+│       ├── get-invite.js         # Retorna dados do convidado pelo token (convite.html)
+│       ├── admin-guests.js       # Lista todos os convidados (protegido por x-admin-secret)
+│       └── checkin-guest.js      # Registra check-in pelo invite_token (scanner)
 ├── public/
-│   ├── index.html                # Landing page do convite
-│   ├── form.html                 # Formulário de confirmação
-│   ├── payment.html              # Tela de PIX (QR Code + Copia e Cola)
-│   ├── success.html              # Página final com mensagem especial
+│   ├── index.html                # Landing page da festa
+│   ├── form.html                 # Formulário de confirmação de presença
+│   ├── payment.html              # Tela PIX (QR Code + copia e cola + polling)
+│   ├── success.html              # Página final + link WhatsApp
+│   ├── convite.html              # Convite individual com QR Code (por token)
+│   ├── admin.html                # Painel administrativo + scanner de check-in
+│   ├── favicon.svg               # Ícone J com coroa
 │   └── assets/
-│       ├── style.css
-│       └── app.js
-├── netlify.toml                  # Configuração do Netlify (redirects, functions)
-├── .env.example
-├── package.json
-└── README.md
+│       ├── style.css             # Design system (cores, tipografia, componentes)
+│       └── app.js                # (reservado)
+├── supabase/
+│   ├── schema.sql                # Criação inicial das tabelas guests + payments
+│   ├── migration_v2.sql          # Adiciona invite_token + invite_url
+│   ├── migration_v3_fix_rls.sql  # Corrige políticas RLS para chave anon
+│   └── migration_v4_checkin.sql  # Adiciona checked_in_at para check-in
+├── netlify.toml                  # Build config + redirect /api/* → /.netlify/functions/*
+├── package.json                  # Dependências: @supabase/supabase-js
+└── .env                          # Variáveis locais (gitignored)
 ```
 
 ---
@@ -94,126 +118,102 @@ paragon-invite/
 |--------|------|-----------|
 | `id` | uuid | Identificador único |
 | `name` | text | Nome do convidado |
-| `phone` | text | Telefone (WhatsApp) |
-| `wants_to_gift` | boolean | Marcou o checkbox de presente |
-| `confirmed_at` | timestamp | Data/hora da confirmação |
-| `created_at` | timestamp | Data de criação do registro |
+| `phone` | text | Telefone WhatsApp |
+| `wants_to_gift` | boolean | Quer dar PIX |
+| `confirmed_at` | timestamptz | Data/hora da confirmação |
+| `invite_token` | uuid | Token único do convite individual |
+| `invite_url` | text | URL completa do convite (`/convite.html?token=…`) |
+| `checked_in_at` | timestamptz | Data/hora do check-in na festa (scanner) |
+| `created_at` | timestamptz | Criação do registro |
 
 ### Tabela `payments`
 
 | Coluna | Tipo | Descrição |
 |--------|------|-----------|
 | `id` | uuid | Identificador único |
-| `guest_id` | uuid | FK → guests |
+| `guest_id` | uuid | FK → guests.id |
 | `mp_payment_id` | text | ID do pagamento no Mercado Pago |
 | `amount` | numeric | Valor em reais |
-| `status` | text | `pending` / `approved` / `rejected` |
+| `status` | text | `pending` / `approved` / `rejected` / `cancelled` |
 | `qr_code` | text | Código copia e cola |
-| `qr_code_base64` | text | QR Code em base64 |
-| `paid_at` | timestamp | Data/hora do pagamento aprovado |
-| `created_at` | timestamp | Data de criação |
+| `qr_code_base64` | text | QR Code em imagem base64 |
+| `paid_at` | timestamptz | Data/hora do pagamento aprovado |
+| `created_at` | timestamptz | Criação do registro |
 
----
+### Migrations (executar no SQL Editor do Supabase em ordem)
 
-## Integrações
-
-### Mercado Pago — PIX
-
-- Geração de cobrança PIX via **Payments API**
-- QR Code dinâmico exibido na tela
-- Código **Copia e Cola** para facilitar o pagamento
-- Confirmação via **Webhook** (`/webhooks/mercadopago`) ou polling periódico
-- Ambiente sandbox disponível para testes
-
-### Supabase
-
-- Persistência de convidados e pagamentos
-- Row Level Security (RLS) configurado
-- Realtime opcional para atualização de status de pagamento
+```
+supabase/schema.sql              ← criação inicial
+supabase/migration_v2.sql        ← invite_token + invite_url
+supabase/migration_v3_fix_rls.sql ← RLS permissiva (chave anon)
+supabase/migration_v4_checkin.sql ← checked_in_at
+```
 
 ---
 
 ## Variáveis de Ambiente
 
+Configure em **Netlify → Site settings → Environment variables** (e no `.env` local):
+
 ```env
 # Mercado Pago
-MP_ACCESS_TOKEN=your_access_token_here
-MP_WEBHOOK_SECRET=your_webhook_secret_here
+MP_ACCESS_TOKEN=APP_USR-...
+MP_WEBHOOK_SECRET=...
 
 # Supabase
 SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+SUPABASE_SERVICE_ROLE_KEY=...
+
+# Admin
+ADMIN_SECRET=SenhaSegura123
 
 # App
-PORT=3000
-BASE_URL=https://seu-dominio.com
-WHATSAPP_GROUP_LINK=https://chat.whatsapp.com/xxxx
+BASE_URL=https://jannyinvite.netlify.app
 ```
+
+> **Atenção:** evite caracteres especiais como `#`, `@` na senha — o dashboard do Netlify pode truncar o valor. Prefira usar a API do Netlify para definir variáveis com caracteres especiais.
 
 ---
 
 ## Como Rodar Localmente
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/paragon-invite.git
+git clone https://github.com/RafaeltCMSP/paragon-invite.git
 cd paragon-invite
 
-# Instale as dependências (inclui Netlify CLI)
 npm install
 
 # Configure as variáveis de ambiente
-cp .env.example .env
-# edite o .env com suas credenciais
+cp .env.example .env   # edite com suas credenciais reais
 
-# Inicie o servidor de desenvolvimento (frontend + functions juntos)
-npm run dev
-# equivale a: netlify dev
+# Sobe frontend + functions juntos
+npm run dev            # equivale a: netlify dev
 ```
 
-> O `netlify dev` sobe o frontend estático e as Functions localmente na mesma porta, simulando o ambiente de produção. Para testar o webhook do Mercado Pago, utilize `netlify dev --live` para obter uma URL pública temporária.
-
-## Deploy no Netlify
-
+Para testar o webhook do Mercado Pago localmente:
 ```bash
-# Primeira vez: conecte o repositório pelo painel do Netlify
-# ou via CLI:
-netlify login
-netlify init
-
-# Deploy de produção
-netlify deploy --prod
+netlify dev --live     # gera URL pública temporária
 ```
-
-As variáveis de ambiente devem ser configuradas em **Netlify → Site settings → Environment variables**.
 
 ---
 
-## Roadmap
+## Decisões Técnicas Relevantes
 
-- [x] Definição do fluxo e arquitetura
-- [ ] Setup inicial do projeto (Node + Netlify Functions)
-- [ ] Configuração do `netlify.toml`
-- [ ] Configuração do Supabase (tabelas + RLS)
-- [ ] Netlify Function — `confirm-guest` (salvar convidado)
-- [ ] Netlify Function — `create-payment` (gerar PIX)
-- [ ] Netlify Function — `payment-status` (polling de status)
-- [ ] Netlify Function — `mp-webhook` (confirmação assíncrona)
-- [ ] Frontend — Landing page do convite
-- [ ] Frontend — Formulário de confirmação
-- [ ] Frontend — Tela de pagamento PIX
-- [ ] Frontend — Página final com mensagem e link do grupo
-- [ ] Testes com ambiente sandbox do Mercado Pago
-- [ ] Deploy no Netlify
+| Decisão | Motivo |
+|---------|--------|
+| Sem SDK do Mercado Pago | O pacote `mercadopago` v2 não bundleia corretamente no Netlify Functions — substituído por `fetch` direto à REST API |
+| `payment-status.js` consulta o MP diretamente | Garante funcionamento mesmo sem webhook configurado |
+| Chave Supabase é a publishable (anon), não service_role | RLS configurada com políticas permissivas para cobrir isso |
+| Scanner: `getUserMedia` + `jsQR` | `html5-qrcode` falhava silenciosamente sem pedir permissão de câmera |
 
 ---
 
 ## Segurança
 
-- Webhook do Mercado Pago validado por assinatura HMAC
-- Variáveis sensíveis nunca expostas ao cliente
-- Service Role Key do Supabase usada apenas no backend
-- HTTPS obrigatório em produção
+- Webhook do Mercado Pago validado por assinatura **HMAC-SHA256**
+- Admin protegido por header `x-admin-secret` comparado com `ADMIN_SECRET` no servidor
+- Variáveis sensíveis nunca expostas ao frontend
+- HTTPS obrigatório (Netlify força redirect)
 
 ---
 
