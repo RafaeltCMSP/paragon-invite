@@ -6,7 +6,7 @@
   <title>Admin — Aniversário da Janynne</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <style>
     body {
       background: #F7F0F3;
@@ -330,19 +330,39 @@
       display: flex; align-items: center; justify-content: center;
     }
 
-    #scanner-reader {
+    .scanner-viewport {
+      position: relative;
       width: min(92vw, 420px);
       height: min(92vw, 420px);
       background: #000;
       border-radius: 16px;
       overflow: hidden;
+      flex-shrink: 0;
     }
 
-    /* Override html5-qrcode internal styles */
-    #scanner-reader video {
-      width: 100% !important;
-      height: 100% !important;
+    #scanner-video {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
+      display: block;
+    }
+
+    .scanner-frame {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .scanner-frame::after {
+      content: '';
+      width: 220px;
+      height: 220px;
+      border: 3px solid rgba(255,255,255,0.85);
+      border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.35);
     }
 
     #scanner-hint {
@@ -515,8 +535,12 @@
       <h2>📷 Escanear Convite</h2>
       <button class="btn-close-scanner" onclick="closeScanner()">✕</button>
     </div>
-    <div id="scanner-reader"></div>
-    <p id="scanner-hint">Aponte a câmera para o QR Code do convite</p>
+    <div class="scanner-viewport">
+      <video id="scanner-video" autoplay playsinline muted></video>
+      <canvas id="scanner-canvas" style="display:none"></canvas>
+      <div class="scanner-frame"></div>
+    </div>
+    <p id="scanner-hint">Iniciando câmera...</p>
   </div>
 
   <!-- ===== Check-in Result ===== -->
@@ -710,42 +734,59 @@
       URL.revokeObjectURL(url)
     }
 
-    // ---- QR Scanner ----
-    let html5QrCode = null
-    let scannerBusy = false
+    // ---- QR Scanner (getUserMedia + jsQR) ----
+    let scanStream    = null
+    let scanRafId     = null
+    let scannerActive = false
 
-    function openScanner() {
+    async function openScanner() {
       if (!adminSecret) return
-      scannerBusy = false
-      document.getElementById('scanner-hint').textContent = 'Aponte a câmera para o QR Code do convite'
-      document.getElementById('scanner-reader').innerHTML = ''
+      scannerActive = false
+      document.getElementById('scanner-hint').textContent = 'Acessando câmera...'
       document.getElementById('scanner-modal').classList.add('open')
 
-      // Defer start so the modal is fully painted and the div has real dimensions
-      setTimeout(() => {
-        html5QrCode = new Html5Qrcode('scanner-reader')
-        html5QrCode.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 240, height: 240 } },
-          onQrScan,
-          () => {}
-        ).catch(err => {
-          console.error('Camera error:', err)
-          document.getElementById('scanner-hint').textContent =
-            'Não foi possível acessar a câmera. Verifique as permissões do navegador.'
+      try {
+        scanStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
         })
-      }, 200)
+        const video = document.getElementById('scanner-video')
+        video.srcObject = scanStream
+        await video.play()
+        document.getElementById('scanner-hint').textContent = 'Aponte para o QR Code do convite'
+        scannerActive = true
+        requestAnimationFrame(scanTick)
+      } catch (err) {
+        console.error('Camera:', err)
+        document.getElementById('scanner-hint').textContent =
+          'Câmera bloqueada. Permita o acesso nas configurações do navegador.'
+      }
     }
 
-    async function onQrScan(decodedText) {
-      if (scannerBusy) return
-      scannerBusy = true
+    function scanTick() {
+      if (!scannerActive) return
+      const video  = document.getElementById('scanner-video')
+      const canvas = document.getElementById('scanner-canvas')
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width  = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(video, 0, 0)
+        const img  = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' })
+        if (code) {
+          handleScannedCode(code.data)
+          return
+        }
+      }
+      scanRafId = requestAnimationFrame(scanTick)
+    }
 
-      // Stop camera before processing
-      try { await html5QrCode.stop() } catch (_) {}
+    async function handleScannedCode(text) {
+      scannerActive = false
+      stopCamera()
       document.getElementById('scanner-modal').classList.remove('open')
 
-      const token = extractToken(decodedText)
+      const token = extractToken(text)
       if (!token) {
         showCheckinResult('❌', 'QR inválido', 'Este QR Code não é um convite válido.', 'err')
         return
@@ -753,9 +794,9 @@
 
       try {
         const res  = await fetch('/api/checkin-guest', {
-          method: 'POST',
+          method:  'POST',
           headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
-          body: JSON.stringify({ token }),
+          body:    JSON.stringify({ token }),
         })
         const data = await res.json()
 
@@ -765,11 +806,10 @@
         }
 
         if (data.already_checked_in) {
-          const time = new Date(data.checked_in_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
+          const time = new Date(data.checked_in_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
           showCheckinResult('⚠️', data.guest.name, `Já registrado às ${time}`, 'warn')
         } else {
           showCheckinResult('✅', data.guest.name, 'Check-in realizado!', 'ok')
-          // Refresh list so Presença column updates
           loadGuests()
         }
       } catch (err) {
@@ -780,37 +820,37 @@
 
     function extractToken(text) {
       try {
-        const url = new URL(text)
-        return url.searchParams.get('token') || null
+        const u = new URL(text)
+        return u.searchParams.get('token') || null
       } catch {
-        // If it looks like a UUID, use directly
-        if (/^[0-9a-f-]{36}$/i.test(text.trim())) return text.trim()
-        return null
+        return /^[0-9a-f-]{36}$/i.test(text.trim()) ? text.trim() : null
       }
+    }
+
+    function stopCamera() {
+      scannerActive = false
+      if (scanRafId) { cancelAnimationFrame(scanRafId); scanRafId = null }
+      if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null }
+      const video = document.getElementById('scanner-video')
+      video.srcObject = null
     }
 
     function closeScanner() {
       document.getElementById('scanner-modal').classList.remove('open')
-      if (html5QrCode) {
-        html5QrCode.stop().catch(() => {}).finally(() => {
-          html5QrCode = null
-          document.getElementById('scanner-reader').innerHTML = ''
-        })
-      }
+      stopCamera()
     }
 
     function showCheckinResult(icon, name, status, type) {
-      document.getElementById('checkin-icon').textContent   = icon
-      document.getElementById('checkin-name').textContent   = name
+      document.getElementById('checkin-icon').textContent = icon
+      document.getElementById('checkin-name').textContent = name
       const el = document.getElementById('checkin-status')
-      el.textContent  = status
-      el.className    = `checkin-status ${type}`
+      el.textContent = status
+      el.className   = `checkin-status ${type}`
       document.getElementById('checkin-result').classList.add('open')
     }
 
     function closeCheckinResult() {
       document.getElementById('checkin-result').classList.remove('open')
-      scannerBusy = false
     }
 
     // ---- Auto-login if session exists ----
