@@ -6,6 +6,8 @@
   <title>Até logo! 🎉 — Aniversário da Janynne</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body { justify-content: center; padding: 24px 16px 48px; }
 
@@ -117,6 +119,27 @@
       line-height: 1.4;
       text-align: center;
     }
+
+    .btn-download-pdf {
+      width: 100%;
+      background: #fff;
+      border: 2px solid var(--primary);
+      color: var(--primary-dark);
+      border-radius: 100px;
+      padding: 13px 20px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 4px 0 16px;
+      transition: background 0.15s;
+    }
+    .btn-download-pdf:hover { background: var(--primary-light); }
+    .btn-download-pdf:disabled { opacity: 0.6; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -148,6 +171,10 @@
           Cada um deve apresentar o seu QR Code na entrada. 🎉
         </p>
       </div>
+
+      <button class="btn-download-pdf" id="btn-download-pdf" style="display:none" onclick="downloadPDF()">
+        ⬇️ Baixar Convites em PDF
+      </button>
 
       <div class="divider" style="margin-top:4px"></div>
 
@@ -204,7 +231,8 @@
     companions.forEach(c => { if (c.invite_url) allInvites.push(c) })
 
     if (allInvites.length > 0) {
-      document.getElementById('invites-section').style.display = 'block'
+      document.getElementById('invites-section').style.display  = 'block'
+      document.getElementById('btn-download-pdf').style.display = 'flex'
       const list = document.getElementById('invites-list')
       list.innerHTML = allInvites.map((p, i) => {
         const wppText = encodeURIComponent(
@@ -239,6 +267,36 @@
 
     function esc(str) {
       return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+    }
+
+    async function downloadPDF() {
+      const btn = document.getElementById('btn-download-pdf')
+      btn.disabled    = true
+      btn.textContent = '⏳ Gerando PDF...'
+
+      try {
+        const section = document.getElementById('invites-section')
+        const canvas  = await html2canvas(section, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+
+        const { jsPDF } = window.jspdf
+        const imgData   = canvas.toDataURL('image/png')
+        const pdfW      = 210
+        const margin    = 10
+        const imgW      = pdfW - margin * 2
+        const imgH      = (canvas.height * imgW) / canvas.width
+
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+        pdf.addImage(imgData, 'PNG', margin, margin, imgW, imgH)
+
+        const safeName = (guestName || 'convidado').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        pdf.save(`convites-${safeName}.pdf`)
+      } catch (err) {
+        console.error('PDF error:', err)
+        alert('Não foi possível gerar o PDF. Tente usar a opção de impressão do navegador.')
+      }
+
+      btn.disabled    = false
+      btn.textContent = '⬇️ Baixar Convites em PDF'
     }
   </script>
 </body>

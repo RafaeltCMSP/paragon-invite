@@ -7,8 +7,6 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       background: linear-gradient(160deg, #FDF4F0 0%, #FFF8E6 100%);
@@ -180,29 +178,6 @@
       padding: 0 28px 28px;
     }
 
-    /* ---- PDF button ---- */
-    .btn-download-pdf {
-      width: 100%;
-      background: #fff;
-      border: 2px solid var(--primary);
-      color: var(--primary-dark);
-      border-radius: 100px;
-      padding: 13px 20px;
-      font-family: 'Nunito', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .btn-download-pdf:hover { background: var(--primary-light); }
-    .btn-download-pdf:disabled { opacity: 0.6; cursor: not-allowed; }
-
     /* ---- Save hint ---- */
     .save-hint {
       background: var(--gold-light);
@@ -277,11 +252,7 @@
       </div>
 
       <div class="ticket-footer">
-        <button class="btn-download-pdf" id="btn-download-pdf" onclick="downloadPDF()">
-          ⬇️ Baixar Convite em PDF
-        </button>
-
-        <a
+        <
           href="https://chat.whatsapp.com/GsAHpwQQv5k79Xg1Y9IFWT?mode=gi_t"
           target="_blank"
           rel="noopener noreferrer"
@@ -353,48 +324,6 @@
       document.getElementById('error-state').style.display = 'block'
     }
 
-    async function downloadPDF() {
-      const btn = document.getElementById('btn-download-pdf')
-      btn.disabled    = true
-      btn.textContent = '⏳ Gerando PDF...'
-
-      try {
-        const ticket = document.getElementById('ticket')
-
-        // Temporarily hide the footer buttons so they don't appear in the PDF
-        const footer = ticket.querySelector('.ticket-footer')
-        footer.style.display = 'none'
-
-        const canvas = await html2canvas(ticket, {
-          scale:           2,
-          useCORS:         true,
-          backgroundColor: '#ffffff',
-        })
-
-        footer.style.display = ''
-
-        const { jsPDF } = window.jspdf
-        const imgData   = canvas.toDataURL('image/png')
-
-        // Fit ticket width into A4 with 10mm margins each side
-        const pdfW   = 210
-        const margin = 10
-        const imgW   = pdfW - margin * 2
-        const imgH   = (canvas.height * imgW) / canvas.width
-
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-        pdf.addImage(imgData, 'PNG', margin, margin, imgW, imgH)
-
-        const safeName = (guestName || 'convite').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-        pdf.save(`convite-${safeName}.pdf`)
-      } catch (err) {
-        console.error('PDF error:', err)
-        alert('Não foi possível gerar o PDF. Tente usar a opção de impressão do navegador.')
-      }
-
-      btn.disabled    = false
-      btn.innerHTML   = '⬇️ Baixar Convite em PDF'
-    }
   </script>
 </body>
 </html>
