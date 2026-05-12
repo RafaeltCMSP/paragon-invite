@@ -1,14 +1,22 @@
 const { MercadoPagoConfig, Payment } = require('mercadopago')
-const { createClient } = require('@supabase/supabase-js')
-
-const mp = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN })
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+const { createClient }               = require('@supabase/supabase-js')
 
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers }
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
+  if (event.httpMethod !== 'POST')    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
+
+  if (!process.env.MP_ACCESS_TOKEN) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Token do Mercado Pago não configurado' }) }
+  }
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Variáveis de ambiente do Supabase não configuradas' }) }
+  }
+
+  const mp       = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN })
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   let body
   try {
@@ -30,10 +38,10 @@ exports.handler = async (event) => {
     result = await payment.create({
       body: {
         transaction_amount: Number(amount),
-        description: 'Presente de Aniversário 🎂',
-        payment_method_id: 'pix',
+        description:        'Presente de Aniversário 🎂',
+        payment_method_id:  'pix',
         payer: {
-          email: `guest-${guest_id}@paragon-invite.com`,
+          email:      `guest-${guest_id}@paragon-invite.com`,
           first_name: name || 'Convidado',
         },
       },
@@ -50,15 +58,13 @@ exports.handler = async (event) => {
   const { error: dbError } = await supabase.from('payments').insert({
     guest_id,
     mp_payment_id: String(result.id),
-    amount: Number(amount),
-    status: 'pending',
+    amount:        Number(amount),
+    status:        'pending',
     qr_code,
     qr_code_base64,
   })
 
-  if (dbError) {
-    console.error('Supabase error:', dbError)
-  }
+  if (dbError) console.error('Supabase error:', dbError)
 
   return {
     statusCode: 200,

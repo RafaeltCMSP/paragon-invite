@@ -1,16 +1,17 @@
-const { randomUUID } = require('crypto')
+const { randomUUID }   = require('crypto')
 const { createClient } = require('@supabase/supabase-js')
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 exports.handler = async (event) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers }
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
+  if (event.httpMethod !== 'POST')    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Variáveis de ambiente do Supabase não configuradas' }) }
+  }
+
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   let body
   try {
@@ -32,8 +33,8 @@ exports.handler = async (event) => {
   const { data, error } = await supabase
     .from('guests')
     .insert({
-      name:         name.trim(),
-      phone:        phone.trim(),
+      name:          name.trim(),
+      phone:         phone.trim(),
       wants_to_gift: !!wants_to_gift,
       confirmed_at:  new Date().toISOString(),
       invite_token:  inviteToken,
