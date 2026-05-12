@@ -643,6 +643,7 @@
       const pending = guests.filter(g => g.payments?.[0]?.status === 'pending').length
         + guests.reduce((s, g) => s + (g.companions || []).filter(c => c.payments?.[0]?.status === 'pending').length, 0)
       const present = guests.filter(g => g.checked_in_at).length
+        + guests.reduce((s, g) => s + (g.companions || []).filter(c => c.checked_in_at).length, 0)
 
       document.getElementById('stat-total').textContent   = total === totalGuests ? total : `${totalGuests}+${totalComp}`
       document.getElementById('stat-pix').textContent     = withPix
@@ -697,6 +698,10 @@
             ? new Date(c.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' })
             : '—'
 
+          const cCheckinBadge = c.checked_in_at
+            ? `<span class="badge badge-paid">✓ ${new Date(c.checked_in_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</span>`
+            : '<span class="badge badge-no">—</span>'
+
           let cStatus
           if (!c.wants_to_gift)                                       cStatus = '<span class="badge badge-no">Sem PIX</span>'
           else if (cpayStatus === 'approved')                         cStatus = '<span class="badge badge-paid">✓ Pago</span>'
@@ -715,7 +720,7 @@
             <td class="td-name"><span class="companion-arrow">↳</span>${esc(c.name)}</td>
             <td style="color:var(--text-muted);font-size:0.82rem">—</td>
             <td class="td-date">${cDate}</td>
-            <td><span class="badge badge-no">—</span></td>
+            <td>${cCheckinBadge}</td>
             <td>${c.wants_to_gift ? '<span class="badge badge-paid">Sim</span>' : '<span class="badge badge-no">Não</span>'}</td>
             <td style="font-weight:700;color:var(--text)">${cAmount}</td>
             <td>${cStatus}</td>
