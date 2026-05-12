@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/assets/style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { justify-content: center; padding: 24px 16px 48px; }
 
@@ -120,26 +121,25 @@
       text-align: center;
     }
 
-    .btn-download-pdf {
-      width: 100%;
-      background: #fff;
-      border: 2px solid var(--primary);
+    .btn-invite-pdf {
+      flex: 1;
+      background: var(--primary-light);
+      border: 1.5px solid var(--primary);
       color: var(--primary-dark);
       border-radius: 100px;
-      padding: 13px 20px;
+      padding: 10px 12px;
       font-family: 'Nunito', sans-serif;
-      font-size: 0.95rem;
+      font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      margin: 4px 0 16px;
-      transition: background 0.15s;
+      gap: 5px;
+      transition: opacity 0.15s;
     }
-    .btn-download-pdf:hover { background: var(--primary-light); }
-    .btn-download-pdf:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-invite-pdf:hover { opacity: 0.88; }
+    .btn-invite-pdf:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -171,10 +171,6 @@
           Cada um deve apresentar o seu QR Code na entrada. 🎉
         </p>
       </div>
-
-      <button class="btn-download-pdf" id="btn-download-pdf" style="display:none" onclick="downloadPDF()">
-        ⬇️ Baixar Convites em PDF
-      </button>
 
       <div class="divider" style="margin-top:4px"></div>
 
@@ -231,8 +227,7 @@
     companions.forEach(c => { if (c.invite_url) allInvites.push(c) })
 
     if (allInvites.length > 0) {
-      document.getElementById('invites-section').style.display  = 'block'
-      document.getElementById('btn-download-pdf').style.display = 'flex'
+      document.getElementById('invites-section').style.display = 'block'
       const list = document.getElementById('invites-list')
       list.innerHTML = allInvites.map((p, i) => {
         const wppText = encodeURIComponent(
@@ -245,6 +240,7 @@
             <div class="invite-actions">
               <button class="btn-invite-copy" onclick="copyUrl(${i})">📋 Copiar</button>
               <a class="btn-invite-wpp" href="https://wa.me/?text=${wppText}" target="_blank" rel="noopener">💬 Compartilhar</a>
+              <button class="btn-invite-pdf" id="pdf-btn-${i}" onclick="downloadInvitePDF(${i})">⬇️ PDF</button>
             </div>
           </div>`
       }).join('')
@@ -269,14 +265,69 @@
       return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
     }
 
-    async function downloadPDF() {
-      const btn = document.getElementById('btn-download-pdf')
+    async function downloadInvitePDF(i) {
+      const btn = document.getElementById(`pdf-btn-${i}`)
       btn.disabled    = true
-      btn.textContent = '⏳ Gerando PDF...'
+      btn.textContent = '⏳ Gerando...'
+
+      const person = allInvites[i]
+
+      // Build hidden off-screen ticket mimicking convite.html
+      const wrapper = document.createElement('div')
+      wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:400px;background:#fff;font-family:Nunito,sans-serif;border-radius:24px;overflow:hidden;'
+
+      wrapper.innerHTML = `
+        <div style="background:linear-gradient(135deg,#A0395A 0%,#C9748A 100%);padding:28px 28px 48px;text-align:center;color:#fff;position:relative;">
+          <p style="font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;opacity:0.85;margin:0 0 6px">Convite Especial</p>
+          <h1 style="font-size:2rem;font-style:italic;color:#fff;margin:0 0 10px;font-family:Georgia,serif">Janynne</h1>
+          <span style="display:inline-block;background:rgba(201,169,110,0.3);border:1px solid rgba(201,169,110,0.5);color:#FFE4A0;font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:100px;">✦ Aniversário ✦</span>
+        </div>
+        <div style="padding:28px 28px 0;background:#fff;">
+          <p style="font-size:0.88rem;color:#888;margin:0 0 4px">Olá,</p>
+          <p style="font-family:Georgia,serif;font-size:1.9rem;font-style:italic;color:#A0395A;margin:0 0 16px;line-height:1.15">${esc(person.name)}</p>
+          <div style="display:inline-flex;align-items:center;gap:6px;background:#EDFBF4;color:#1a7a4a;border:1px solid #B8EDD4;border-radius:100px;font-size:0.82rem;font-weight:700;padding:6px 14px;margin-bottom:24px">
+            ✅ Presença Confirmada
+          </div>
+          <div style="background:#FFF8F5;border-radius:14px;padding:16px;margin-bottom:24px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:0.9rem;color:#333;margin-bottom:10px">
+              <span>📅</span><strong>Sábado, 06 de Junho de 2026</strong>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:0.9rem;color:#333;margin-bottom:10px">
+              <span>🕐</span><span>13h às 18h</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:0.9rem;color:#333">
+              <span>📍</span>
+              <div>
+                <strong style="display:block">Chácara Recanto Verde Eventos</strong>
+                <span style="font-size:0.82rem;color:#888">Rua Recanto Verde, 1075 · Cotia / SP</span>
+              </div>
+            </div>
+          </div>
+          <div style="text-align:center;padding-bottom:24px">
+            <p style="font-size:0.78rem;color:#888;margin-bottom:12px">QR Code de verificação</p>
+            <div id="pdf-qr-${i}" style="display:flex;justify-content:center"></div>
+          </div>
+          <div style="border-top:2px dashed #eee;margin:0 -28px;padding:16px 28px;font-size:0.88rem;color:#888">
+            🎟️ Apresente este convite na entrada da festa
+          </div>
+        </div>`
+
+      document.body.appendChild(wrapper)
+
+      // Generate QR code inside hidden div
+      new QRCode(document.getElementById(`pdf-qr-${i}`), {
+        text:       person.invite_url,
+        width:      160,
+        height:     160,
+        colorDark:  '#3D2C35',
+        colorLight: '#ffffff',
+      })
+
+      // Wait for QR to render
+      await new Promise(r => setTimeout(r, 600))
 
       try {
-        const section = document.getElementById('invites-section')
-        const canvas  = await html2canvas(section, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+        const canvas  = await html2canvas(wrapper, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
 
         const { jsPDF } = window.jspdf
         const imgData   = canvas.toDataURL('image/png')
@@ -288,15 +339,16 @@
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
         pdf.addImage(imgData, 'PNG', margin, margin, imgW, imgH)
 
-        const safeName = (guestName || 'convidado').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-        pdf.save(`convites-${safeName}.pdf`)
+        const safeName = person.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        pdf.save(`convite-${safeName}.pdf`)
       } catch (err) {
         console.error('PDF error:', err)
         alert('Não foi possível gerar o PDF. Tente usar a opção de impressão do navegador.')
       }
 
+      document.body.removeChild(wrapper)
       btn.disabled    = false
-      btn.textContent = '⬇️ Baixar Convites em PDF'
+      btn.textContent = '⬇️ PDF'
     }
   </script>
 </body>
