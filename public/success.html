@@ -240,9 +240,8 @@
         return `
           <div class="invite-person-card">
             <div class="invite-person-name">🎟️ ${esc(p.name)}</div>
-            <span class="invite-link-text">${esc(p.invite_url)}</span>
             <div class="invite-actions">
-              <button class="btn-invite-copy" onclick="copyUrl(${i})">📋 Copiar</button>
+              <a class="btn-invite-copy" href="${esc(p.invite_url)}">🎟️ Ver Convite</a>
               <a class="btn-invite-wpp" href="https://wa.me/?text=${wppText}" target="_blank" rel="noopener">💬 Compartilhar</a>
             </div>
           </div>`
