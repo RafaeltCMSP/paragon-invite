@@ -6,7 +6,6 @@
   <title>Até logo! 🎉 — Aniversário da Janynne</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/assets/style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
@@ -276,83 +275,109 @@
 
       try {
         const { jsPDF } = window.jspdf
-        const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-        const pdfW   = 210
-        const margin = 10
-        const imgW   = pdfW - margin * 2
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+        const ml = 14, mr = 14                    // margins left/right
+        const W  = 210 - ml - mr                  // usable width
 
         for (let i = 0; i < allInvites.length; i++) {
           const person = allInvites[i]
-          const qrId   = `pdf-qr-${i}-${Date.now()}`
-
-          // Off-screen div using absolute (not fixed) so html2canvas renders full height
-          const wrapper = document.createElement('div')
-          wrapper.style.cssText = 'position:absolute;top:-99999px;left:0;width:400px;background:#fff;font-family:sans-serif;'
-          wrapper.innerHTML = `
-            <div style="background:linear-gradient(135deg,#A0395A 0%,#C9748A 100%);padding:28px 28px 36px;text-align:center;color:#fff;">
-              <p style="font-size:11px;letter-spacing:3px;text-transform:uppercase;opacity:0.85;margin:0 0 8px">Convite Especial</p>
-              <h1 style="font-size:32px;font-style:italic;color:#fff;margin:0 0 10px;font-family:Georgia,serif">Janynne</h1>
-              <span style="display:inline-block;background:rgba(201,169,110,0.3);border:1px solid rgba(201,169,110,0.5);color:#FFE4A0;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:100px;">✦ Aniversário ✦</span>
-            </div>
-            <div style="padding:28px 28px 24px;background:#fff;">
-              <p style="font-size:14px;color:#888;margin:0 0 4px">Olá,</p>
-              <p style="font-family:Georgia,serif;font-size:30px;font-style:italic;color:#A0395A;margin:0 0 18px;line-height:1.2">${esc(person.name)}</p>
-              <div style="display:inline-block;background:#EDFBF4;color:#1a7a4a;border:1px solid #B8EDD4;border-radius:100px;font-size:13px;font-weight:700;padding:6px 16px;margin-bottom:22px">
-                ✅ Presença Confirmada
-              </div>
-              <div style="background:#FFF8F5;border-radius:12px;padding:16px;margin-bottom:22px">
-                <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#333;margin-bottom:10px">
-                  <span>📅</span><strong>Sábado, 06 de Junho de 2026</strong>
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#333;margin-bottom:10px">
-                  <span>🕐</span><span>13h às 18h</span>
-                </div>
-                <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#333">
-                  <span>📍</span>
-                  <div>
-                    <strong style="display:block">Chácara Recanto Verde Eventos</strong>
-                    <span style="font-size:12px;color:#888">Rua Recanto Verde, 1075 · Cotia / SP</span>
-                  </div>
-                </div>
-              </div>
-              <div style="text-align:center;padding-bottom:20px">
-                <p style="font-size:12px;color:#888;margin-bottom:12px">QR Code de verificação</p>
-                <div id="${qrId}" style="display:flex;justify-content:center"></div>
-              </div>
-              <div style="border-top:2px dashed #ddd;padding-top:16px;font-size:14px;color:#888;text-align:center">
-                🎟️ Apresente este convite na entrada da festa
-              </div>
-            </div>`
-
-          document.body.appendChild(wrapper)
-
-          new QRCode(document.getElementById(qrId), {
-            text:       person.invite_url,
-            width:      160,
-            height:     160,
-            colorDark:  '#3D2C35',
-            colorLight: '#ffffff',
-          })
-
-          // Wait for QR canvas to paint
-          await new Promise(r => setTimeout(r, 700))
-
-          const canvas = await html2canvas(wrapper, {
-            scale:       2,
-            useCORS:     true,
-            backgroundColor: '#ffffff',
-            scrollX:     0,
-            scrollY:     0,
-            windowWidth: 400,
-          })
-
-          const imgData = canvas.toDataURL('image/png')
-          const imgH    = (canvas.height * imgW) / canvas.width
-
           if (i > 0) pdf.addPage()
-          pdf.addImage(imgData, 'PNG', margin, margin, imgW, imgH)
 
-          document.body.removeChild(wrapper)
+          // -- Generate QR code and grab its canvas data URL directly --
+          const qrWrap = document.createElement('div')
+          qrWrap.style.cssText = 'position:absolute;top:-9999px;left:0;'
+          document.body.appendChild(qrWrap)
+          new QRCode(qrWrap, {
+            text: person.invite_url, width: 200, height: 200,
+            colorDark: '#3D2C35', colorLight: '#ffffff',
+          })
+          await new Promise(r => setTimeout(r, 200))
+          const qrCanvas  = qrWrap.querySelector('canvas')
+          const qrDataUrl = qrCanvas ? qrCanvas.toDataURL('image/png') : null
+          document.body.removeChild(qrWrap)
+
+          // -- Draw ticket with jsPDF (no html2canvas) --
+          let y = 12
+
+          // Header
+          pdf.setFillColor(160, 57, 90)
+          pdf.roundedRect(ml, y, W, 42, 4, 4, 'F')
+          pdf.setTextColor(255, 255, 255)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(7.5)
+          pdf.text('CONVITE ESPECIAL', ml + W / 2, y + 9, { align: 'center' })
+          pdf.setFont('helvetica', 'bolditalic')
+          pdf.setFontSize(26)
+          pdf.text('Janynne', ml + W / 2, y + 24, { align: 'center' })
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(8)
+          pdf.text('* ANIVERSARIO *', ml + W / 2, y + 35, { align: 'center' })
+          y += 50
+
+          // Guest greeting
+          pdf.setTextColor(140, 140, 140)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(10)
+          pdf.text('Ola,', ml, y)
+          y += 7
+          pdf.setTextColor(160, 57, 90)
+          pdf.setFont('helvetica', 'bolditalic')
+          pdf.setFontSize(20)
+          pdf.text(person.name, ml, y)
+          y += 10
+
+          // Confirmed badge
+          pdf.setFillColor(237, 251, 244)
+          pdf.setDrawColor(184, 237, 212)
+          pdf.roundedRect(ml, y, 70, 8, 2, 2, 'FD')
+          pdf.setTextColor(26, 122, 74)
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(9)
+          pdf.text('Presenca Confirmada', ml + 35, y + 5.4, { align: 'center' })
+          y += 15
+
+          // Details box
+          pdf.setFillColor(255, 248, 245)
+          pdf.setDrawColor(220, 210, 205)
+          pdf.roundedRect(ml, y, W, 30, 3, 3, 'FD')
+          pdf.setTextColor(50, 50, 50)
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(10)
+          pdf.text('Data:', ml + 5, y + 8)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text('Sabado, 06 de Junho de 2026', ml + 20, y + 8)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text('Hora:', ml + 5, y + 17)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text('13h as 18h', ml + 20, y + 17)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text('Local:', ml + 5, y + 26)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(9)
+          pdf.text('Chacara Recanto Verde · Rua Recanto Verde, 1075 · Cotia/SP', ml + 22, y + 26)
+          y += 37
+
+          // QR code
+          pdf.setTextColor(140, 140, 140)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(9)
+          pdf.text('QR Code de verificacao — apresente na entrada', ml + W / 2, y, { align: 'center' })
+          y += 5
+          if (qrDataUrl) {
+            const qrSize = 60
+            pdf.addImage(qrDataUrl, 'PNG', ml + (W - qrSize) / 2, y, qrSize, qrSize)
+            y += qrSize + 8
+          }
+
+          // Footer dashed line
+          pdf.setDrawColor(200, 200, 200)
+          pdf.setLineDashPattern([2, 2], 0)
+          pdf.line(ml, y, ml + W, y)
+          pdf.setLineDashPattern([], 0)
+          y += 6
+          pdf.setTextColor(140, 140, 140)
+          pdf.setFontSize(9)
+          pdf.text('Apresente este convite na entrada da festa', ml + W / 2, y, { align: 'center' })
         }
 
         const safeName = (guestName || 'convidado').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
@@ -360,7 +385,7 @@
 
       } catch (err) {
         console.error('PDF error:', err)
-        alert('Não foi possível gerar o PDF. Tente usar a opção de impressão do navegador.')
+        alert('Nao foi possivel gerar o PDF. Tente usar a opcao de impressao do navegador.')
       }
 
       btn.disabled    = false
