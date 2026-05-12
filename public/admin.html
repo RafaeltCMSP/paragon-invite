@@ -332,8 +332,17 @@
 
     #scanner-reader {
       width: min(92vw, 420px);
+      height: min(92vw, 420px);
+      background: #000;
       border-radius: 16px;
       overflow: hidden;
+    }
+
+    /* Override html5-qrcode internal styles */
+    #scanner-reader video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
     }
 
     #scanner-hint {
@@ -707,19 +716,25 @@
 
     function openScanner() {
       if (!adminSecret) return
-      document.getElementById('scanner-modal').classList.add('open')
       scannerBusy = false
+      document.getElementById('scanner-hint').textContent = 'Aponte a câmera para o QR Code do convite'
+      document.getElementById('scanner-reader').innerHTML = ''
+      document.getElementById('scanner-modal').classList.add('open')
 
-      html5QrCode = new Html5Qrcode('scanner-reader')
-      html5QrCode.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 260, height: 260 } },
-        onQrScan,
-        () => {}
-      ).catch(err => {
-        console.error('Camera error:', err)
-        document.getElementById('scanner-hint').textContent = 'Não foi possível acessar a câmera.'
-      })
+      // Defer start so the modal is fully painted and the div has real dimensions
+      setTimeout(() => {
+        html5QrCode = new Html5Qrcode('scanner-reader')
+        html5QrCode.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 240, height: 240 } },
+          onQrScan,
+          () => {}
+        ).catch(err => {
+          console.error('Camera error:', err)
+          document.getElementById('scanner-hint').textContent =
+            'Não foi possível acessar a câmera. Verifique as permissões do navegador.'
+        })
+      }, 200)
     }
 
     async function onQrScan(decodedText) {
@@ -777,8 +792,10 @@
     function closeScanner() {
       document.getElementById('scanner-modal').classList.remove('open')
       if (html5QrCode) {
-        html5QrCode.stop().catch(() => {})
-        html5QrCode = null
+        html5QrCode.stop().catch(() => {}).finally(() => {
+          html5QrCode = null
+          document.getElementById('scanner-reader').innerHTML = ''
+        })
       }
     }
 
