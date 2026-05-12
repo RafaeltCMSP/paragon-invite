@@ -639,7 +639,9 @@
 
       const paid    = guests.filter(g => g.payments?.[0]?.status === 'approved')
       const amount  = paid.reduce((s, g) => s + (g.payments[0].amount || 0), 0)
+        + guests.reduce((s, g) => s + (g.companions || []).reduce((s2, c) => s2 + (c.payments?.[0]?.status === 'approved' ? (c.payments[0].amount || 0) : 0), 0), 0)
       const pending = guests.filter(g => g.payments?.[0]?.status === 'pending').length
+        + guests.reduce((s, g) => s + (g.companions || []).filter(c => c.payments?.[0]?.status === 'pending').length, 0)
       const present = guests.filter(g => g.checked_in_at).length
 
       document.getElementById('stat-total').textContent   = total === totalGuests ? total : `${totalGuests}+${totalComp}`
@@ -687,15 +689,39 @@
              <a class="btn-view-ticket" href="${esc(g.invite_url)}" target="_blank">🎟️ Ver</a>`
           : '<span style="color:var(--text-muted);font-size:0.8rem">—</span>'
 
-        const companionRows = (g.companions || []).map(c => `
+        const companionRows = (g.companions || []).map(c => {
+          const cpay       = c.payments?.[0]
+          const cpayStatus = cpay?.status || null
+          const cAmount    = cpay?.amount ? `R$ ${Number(cpay.amount).toFixed(2).replace('.', ',')}` : '—'
+          const cDate      = c.created_at
+            ? new Date(c.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' })
+            : '—'
+
+          let cStatus
+          if (!c.wants_to_gift)                                       cStatus = '<span class="badge badge-no">Sem PIX</span>'
+          else if (cpayStatus === 'approved')                         cStatus = '<span class="badge badge-paid">✓ Pago</span>'
+          else if (cpayStatus === 'pending')                          cStatus = '<span class="badge badge-pending">Pendente</span>'
+          else if (cpayStatus === 'rejected' || cpayStatus === 'cancelled') cStatus = '<span class="badge badge-rejected">Recusado</span>'
+          else                                                        cStatus = '<span class="badge badge-no">—</span>'
+
+          const cActions = c.invite_url
+            ? `<button class="btn-copy-link" onclick="copyLink('${esc(c.invite_url)}')">📋 Copiar</button>
+               <a class="btn-view-ticket" href="${esc(c.invite_url)}" target="_blank">🎟️ Ver</a>`
+            : '<span style="color:var(--text-muted);font-size:0.8rem">—</span>'
+
+          return `
           <tr class="companion-row">
             <td></td>
-            <td colspan="3"><span class="companion-arrow">↳</span>${esc(c.name)}</td>
-            <td></td>
+            <td class="td-name"><span class="companion-arrow">↳</span>${esc(c.name)}</td>
+            <td style="color:var(--text-muted);font-size:0.82rem">—</td>
+            <td class="td-date">${cDate}</td>
+            <td><span class="badge badge-no">—</span></td>
             <td>${c.wants_to_gift ? '<span class="badge badge-paid">Sim</span>' : '<span class="badge badge-no">Não</span>'}</td>
-            <td colspan="2"></td>
-            <td>${c.invite_url ? `<a class="btn-view-ticket" href="${esc(c.invite_url)}" target="_blank">🎟️ Ver</a>` : ''}</td>
-          </tr>`).join('')
+            <td style="font-weight:700;color:var(--text)">${cAmount}</td>
+            <td>${cStatus}</td>
+            <td style="display:flex;gap:6px;flex-wrap:wrap">${cActions}</td>
+          </tr>`
+        }).join('')
 
         return `
           <tr data-search="${esc(g.name.toLowerCase())} ${esc(g.phone)}">

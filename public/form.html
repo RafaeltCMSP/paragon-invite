@@ -353,7 +353,7 @@
         ;(guestData.companions || []).forEach((apiComp, idx) => {
           const fc = formComps[idx]
           if (fc?.wants_to_gift && fc.amount >= 1) {
-            pixPayers.push({ label: apiComp.name, guest_id: guestData.guest.id, amount: fc.amount, idempotency_key: apiComp.id })
+            pixPayers.push({ label: apiComp.name, guest_id: guestData.guest.id, companion_id: apiComp.id, amount: fc.amount, idempotency_key: apiComp.id })
           }
         })
 
@@ -373,6 +373,7 @@
               amount:          payer.amount,
               name:            payer.label,
               ...(payer.idempotency_key ? { idempotency_key: payer.idempotency_key } : {}),
+              ...(payer.companion_id    ? { companion_id:    payer.companion_id    } : {}),
             }),
           })
           const payData = await payRes.json()
