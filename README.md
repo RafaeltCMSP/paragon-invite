@@ -39,6 +39,7 @@
         ▼
 [Página Final]  (/success.html)
   ├── Card por pessoa: link individual + Copiar + Compartilhar WhatsApp
+  ├── Botão único "Baixar Convites em PDF" (gera 1 página por pessoa com QR Code)
   └── Botão: "Entrar no Grupo do WhatsApp 🎉"
         │
         ▼
@@ -73,8 +74,9 @@ Acesso: `/admin.html` — protegido por senha (`ADMIN_SECRET`)
 | **Frontend** | HTML + CSS + JavaScript vanilla |
 | **Banco de dados** | Supabase (PostgreSQL + RLS) |
 | **Pagamentos** | Mercado Pago REST API (PIX) — sem SDK |
-| **QR Code (geração)** | qrcodejs (CDN) — `/convite.html` |
+| **QR Code (geração)** | qrcodejs (CDN) — `/convite.html` e PDF |
 | **QR Code (leitura)** | jsQR (CDN) — scanner do admin |
+| **PDF de convites** | jsPDF (CDN) — desenho direto, sem html2canvas |
 | **Hospedagem** | Netlify |
 
 ---
@@ -227,6 +229,7 @@ netlify dev --live     # gera URL pública temporária
 | `payment-status.js` consulta o MP diretamente | Garante funcionamento mesmo sem webhook configurado |
 | Chave Supabase é a publishable (anon), não service_role | RLS configurada com políticas permissivas para cobrir isso |
 | Scanner: `getUserMedia` + `jsQR` | `html5-qrcode` falhava silenciosamente sem pedir permissão de câmera |
+| PDF gerado com jsPDF direto (sem html2canvas) | `html2canvas` cortava o QR Code ao capturar elementos off-screen com `position:fixed` — jsPDF desenha o ticket via comandos nativos e insere o QR extraído diretamente do canvas do qrcodejs |
 
 ---
 
