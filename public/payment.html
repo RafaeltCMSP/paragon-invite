@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fazer o Presente via PIX</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+  <style>
+    .amount-pill {
+      display: inline-block;
+      background: var(--gold-light);
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 1.5rem;
+      padding: 8px 24px;
+      border-radius: 100px;
+      margin: 12px 0 20px;
+      font-family: 'Playfair Display', serif;
+    }
+
+    .timer {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .timer span { color: var(--primary); font-weight: 700; }
+
+    .copied-toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--text);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 100px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+
+    .copied-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a href="/form.html" class="back-link">← Voltar</a>
+
+    <div class="deco-header" style="padding-top:8px">🎁</div>
+
+    <div class="card pop-in" id="payment-card">
+      <div style="text-align:center">
+        <h2 style="font-size:1.5rem; color:var(--primary-dark); margin-bottom:4px">Presente via PIX</h2>
+        <p style="color:var(--text-muted); font-size:0.9rem">Escaneie o QR Code ou copie o código abaixo</p>
+        <div class="amount-pill" id="amount-display">R$ —</div>
+      </div>
+
+      <div class="qr-wrapper" id="qr-wrapper">
+        <img id="qr-img" src="" alt="QR Code PIX" />
+      </div>
+
+      <p style="font-size:0.8rem; color:var(--text-muted); text-align:center; margin-bottom:8px">
+        Ou copie o código Copia e Cola:
+      </p>
+      <div class="pix-code-box" id="pix-code">—</div>
+
+      <button class="btn btn-copy" id="copy-btn" onclick="copyCode()">
+        📋 Copiar Código PIX
+      </button>
+
+      <div class="divider" style="margin:20px auto"></div>
+
+      <div class="status-badge" id="status-badge">
+        <span class="spinner"></span>
+        Aguardando pagamento...
+      </div>
+
+      <div class="timer" id="timer">
+        QR Code expira em <span id="countdown">30:00</span>
+      </div>
+    </div>
+
+    <p style="font-size:0.78rem; color:var(--text-muted); text-align:center; margin-top:16px; padding:0 8px">
+      Após o pagamento a confirmação é automática. Não feche esta página. 😊
+    </p>
+  </div>
+
+  <div class="copied-toast" id="toast">Código copiado! ✓</div>
+
+  <script>
+    const paymentId  = sessionStorage.getItem('payment_id')
+    const qrCode     = sessionStorage.getItem('qr_code')
+    const qrBase64   = sessionStorage.getItem('qr_code_base64')
+    const amount     = sessionStorage.getItem('payment_amount')
+
+    if (!paymentId || !qrCode) {
+      window.location.href = '/form.html'
+    }
+
+    document.getElementById('amount-display').textContent = `R$ ${amount || '—'}`
+    document.getElementById('pix-code').textContent = qrCode
+    document.getElementById('qr-img').src = `data:image/png;base64,${qrBase64}`
+
+    function copyCode() {
+      navigator.clipboard.writeText(qrCode).then(() => {
+        const toast = document.getElementById('toast')
+        toast.classList.add('show')
+        setTimeout(() => toast.classList.remove('show'), 2500)
+        const btn = document.getElementById('copy-btn')
+        btn.textContent = '✓ Copiado!'
+        setTimeout(() => { btn.textContent = '📋 Copiar Código PIX' }, 2500)
+      })
+    }
+
+    // Countdown timer (30 min)
+    let seconds = 30 * 60
+    const countdownEl = document.getElementById('countdown')
+    const timerTick = setInterval(() => {
+      seconds--
+      if (seconds <= 0) {
+        clearInterval(timerTick)
+        countdownEl.parentElement.innerHTML = '⚠️ QR Code expirado. <a href="/form.html" style="color:var(--primary)">Gerar novo</a>'
+        return
+      }
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0')
+      const s = String(seconds % 60).padStart(2, '0')
+      countdownEl.textContent = `${m}:${s}`
+    }, 1000)
+
+    // Poll payment status every 3s
+    const poll = setInterval(async () => {
+      try {
+        const res  = await fetch(`/api/payment-status?payment_id=${paymentId}`)
+        const data = await res.json()
+
+        if (data.status === 'approved') {
+          clearInterval(poll)
+          clearInterval(timerTick)
+
+          const badge = document.getElementById('status-badge')
+          badge.classList.add('approved')
+          badge.innerHTML = '✅ Pagamento confirmado!'
+
+          setTimeout(() => { window.location.href = '/success.html' }, 1800)
+        } else if (data.status === 'rejected' || data.status === 'cancelled') {
+          clearInterval(poll)
+          clearInterval(timerTick)
+          const badge = document.getElementById('status-badge')
+          badge.style.background = '#FEF2F2'
+          badge.style.color      = 'var(--error)'
+          badge.innerHTML        = '❌ Pagamento não aprovado. <a href="/form.html" style="color:var(--primary)">Tentar novamente</a>'
+        }
+      } catch { /* silently retry */ }
+    }, 3000)
+  </script>
+</body>
+</html>

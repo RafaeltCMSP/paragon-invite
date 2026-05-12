@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirmar Presença</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="page">
+    <a href="/" class="back-link">← Voltar ao convite</a>
+
+    <div class="deco-header" style="padding-top:8px">🎉</div>
+
+    <div class="card pop-in">
+      <h2 style="font-size:1.6rem; margin-bottom:6px; color:var(--primary-dark)">
+        Confirmar Presença
+      </h2>
+      <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:24px">
+        Mal podemos esperar para te ver! Preencha abaixo para confirmarmos seu lugar. 💕
+      </p>
+
+      <form id="confirm-form" novalidate>
+
+        <div class="field">
+          <label for="name">Nome completo</label>
+          <input type="text" id="name" placeholder="Seu nome" autocomplete="name" required />
+          <span class="field-error" id="name-error">Por favor, informe seu nome.</span>
+        </div>
+
+        <div class="field">
+          <label for="phone">WhatsApp</label>
+          <input type="tel" id="phone" placeholder="(11) 99999-9999" autocomplete="tel" required />
+          <span class="field-error" id="phone-error">Por favor, informe um número válido.</span>
+          <span class="hint">Usaremos apenas para confirmar sua presença 🤫</span>
+        </div>
+
+        <!-- PIX gift card -->
+        <div class="gift-card" id="gift-card">
+          <label class="gift-toggle">
+            <input type="checkbox" id="wants-to-gift" />
+            <span class="checkmark"></span>
+            <div class="gift-label">
+              <strong>🎁 Quero presentear com PIX</strong>
+              <span>Contribua com o valor que o coração mandar</span>
+            </div>
+          </label>
+
+          <div class="gift-amount" id="gift-amount">
+            <div class="field" style="margin-bottom:0">
+              <label for="amount">Valor do presente</label>
+              <div class="amount-wrapper">
+                <span class="amount-prefix">R$</span>
+                <input type="text" id="amount" inputmode="numeric" placeholder="0,00" />
+              </div>
+              <span class="field-error" id="amount-error">Informe um valor acima de R$ 1,00.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="error-banner" id="error-banner"></div>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <span id="btn-text">Confirmar Presença</span>
+          <span class="spinner" id="btn-spinner" style="display:none"></span>
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const form        = document.getElementById('confirm-form')
+    const giftCheck   = document.getElementById('wants-to-gift')
+    const giftCard    = document.getElementById('gift-card')
+    const giftAmount  = document.getElementById('gift-amount')
+    const amountInput = document.getElementById('amount')
+    const submitBtn   = document.getElementById('submit-btn')
+    const btnText     = document.getElementById('btn-text')
+    const btnSpinner  = document.getElementById('btn-spinner')
+    const errorBanner = document.getElementById('error-banner')
+
+    // Toggle gift section
+    giftCheck.addEventListener('change', () => {
+      const on = giftCheck.checked
+      giftCard.classList.toggle('active', on)
+      giftAmount.classList.toggle('visible', on)
+      if (on) amountInput.focus()
+    })
+
+    // Brazilian phone mask
+    document.getElementById('phone').addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 11)
+      if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3')
+      else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4,5})(\d{0,4})$/, '($1) $2-$3')
+      else if (v.length > 2) v = v.replace(/^(\d{2})(\d+)$/, '($1) $2')
+      else if (v.length > 0) v = v.replace(/^(\d+)$/, '($1')
+      e.target.value = v
+    })
+
+    // Amount mask (currency)
+    amountInput.addEventListener('input', (e) => {
+      let digits = e.target.value.replace(/\D/g, '')
+      if (!digits) { e.target.value = ''; return }
+      const num = (parseInt(digits, 10) / 100).toFixed(2)
+      e.target.value = num.replace('.', ',')
+    })
+
+    function setLoading(on) {
+      submitBtn.disabled = on
+      btnText.textContent = on ? 'Aguarde...' : 'Confirmar Presença'
+      btnSpinner.style.display = on ? 'inline-block' : 'none'
+    }
+
+    function showError(msg) {
+      errorBanner.textContent = msg
+      errorBanner.classList.add('visible')
+    }
+
+    function clearErrors() {
+      errorBanner.classList.remove('visible')
+      document.querySelectorAll('.field-error').forEach(el => el.classList.remove('visible'))
+      document.querySelectorAll('.error-input').forEach(el => el.classList.remove('error-input'))
+    }
+
+    function validate() {
+      let ok = true
+      const name  = document.getElementById('name').value.trim()
+      const phone = document.getElementById('phone').value.replace(/\D/g, '')
+
+      if (!name) {
+        document.getElementById('name').classList.add('error-input')
+        document.getElementById('name-error').classList.add('visible')
+        ok = false
+      }
+      if (phone.length < 10) {
+        document.getElementById('phone').classList.add('error-input')
+        document.getElementById('phone-error').classList.add('visible')
+        ok = false
+      }
+      if (giftCheck.checked) {
+        const val = parseFloat(amountInput.value.replace(',', '.'))
+        if (!val || val < 1) {
+          amountInput.classList.add('error-input')
+          document.getElementById('amount-error').classList.add('visible')
+          ok = false
+        }
+      }
+      return ok
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      clearErrors()
+      if (!validate()) return
+
+      const name        = document.getElementById('name').value.trim()
+      const phone       = document.getElementById('phone').value.trim()
+      const wantsGift   = giftCheck.checked
+      const amount      = wantsGift ? parseFloat(amountInput.value.replace(',', '.')) : null
+
+      setLoading(true)
+
+      try {
+        // 1. Confirm guest
+        const guestRes = await fetch('/api/confirm-guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, wants_to_gift: wantsGift }),
+        })
+        const guestData = await guestRes.json()
+        if (!guestRes.ok) throw new Error(guestData.error || 'Erro ao confirmar presença')
+
+        sessionStorage.setItem('guest_name', name)
+
+        if (!wantsGift) {
+          window.location.href = '/success.html'
+          return
+        }
+
+        // 2. Create PIX payment
+        const payRes = await fetch('/api/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guest_id: guestData.guest.id, amount, name }),
+        })
+        const payData = await payRes.json()
+        if (!payRes.ok) throw new Error(payData.error || 'Erro ao gerar PIX')
+
+        sessionStorage.setItem('payment_id',       String(payData.payment_id))
+        sessionStorage.setItem('qr_code',          payData.qr_code)
+        sessionStorage.setItem('qr_code_base64',   payData.qr_code_base64)
+        sessionStorage.setItem('payment_amount',   amount.toFixed(2).replace('.', ','))
+
+        window.location.href = '/payment.html'
+
+      } catch (err) {
+        showError(err.message || 'Ocorreu um erro. Por favor, tente novamente.')
+        setLoading(false)
+      }
+    })
+  </script>
+</body>
+</html>

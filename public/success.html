@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Até logo! 🎉</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+  <style>
+    body { justify-content: center; padding: 24px 16px 48px; }
+
+    .heart-container {
+      font-size: 4rem;
+      text-align: center;
+      margin-bottom: 8px;
+      animation: heartbeat 1.2s ease infinite;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.12); }
+    }
+
+    .success-card { text-align: center; }
+
+    .name-highlight {
+      color: var(--primary);
+      font-style: italic;
+    }
+
+    .gift-confirmed {
+      background: linear-gradient(135deg, #EDFBF4 0%, #F5FFF9 100%);
+      border: 1px solid #B8EDD4;
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin: 20px 0;
+      font-size: 0.9rem;
+      color: var(--success);
+      font-weight: 600;
+      display: none;
+    }
+
+    .whatsapp-btn {
+      font-size: 1.05rem;
+      padding: 18px 28px;
+      margin-top: 8px;
+    }
+
+    .footer-note {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="deco-header">🎊 🎉 🎊</div>
+
+    <div class="card success-card pop-in">
+      <div class="heart-container">💕</div>
+
+      <div class="divider"></div>
+
+      <h1 class="success-title" style="margin-top:12px">
+        Presença confirmada!
+      </h1>
+
+      <p class="success-msg" style="margin-top:12px" id="success-message">
+        Estamos muito felizes que você vai estar com a gente para
+        celebrar esse dia tão especial! 🎂
+      </p>
+
+      <div class="gift-confirmed" id="gift-confirmed">
+        🎁 Presente recebido com muito carinho! Obrigada de coração. 💕
+      </div>
+
+      <div class="divider" style="margin-top:24px"></div>
+
+      <p style="font-size:0.92rem; color:var(--text-muted); margin:16px 0 20px">
+        Agora é só entrar no grupo do WhatsApp para ficar por dentro de todos os detalhes da festa. Mal podemos esperar para te ver! 🥳
+      </p>
+
+      <!--
+        PERSONALIZE: Substitua o link abaixo pelo link real do seu grupo do WhatsApp.
+        Formato: https://chat.whatsapp.com/CODIGO_DO_GRUPO
+      -->
+      <a
+        id="whatsapp-btn"
+        href="https://chat.whatsapp.com/SEU_GRUPO_AQUI"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn btn-whatsapp whatsapp-btn"
+      >
+        💬 Entrar no Grupo do WhatsApp
+      </a>
+    </div>
+
+    <p class="footer-note">
+      Até lá! Com amor 💗
+    </p>
+  </div>
+
+  <script>
+    const name = sessionStorage.getItem('guest_name')
+    const paid = sessionStorage.getItem('payment_id')
+
+    if (name) {
+      document.getElementById('success-message').innerHTML =
+        `Estamos muito felizes que <span class="name-highlight">${escapeHtml(name)}</span> vai estar com a gente para celebrar esse dia tão especial! 🎂`
+    }
+
+    if (paid) {
+      document.getElementById('gift-confirmed').style.display = 'block'
+      sessionStorage.removeItem('payment_id')
+      sessionStorage.removeItem('qr_code')
+      sessionStorage.removeItem('qr_code_base64')
+      sessionStorage.removeItem('payment_amount')
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
+    }
+  </script>
+</body>
+</html>

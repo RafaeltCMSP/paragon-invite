@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Você está convidado! 🎂</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+  <style>
+    body { justify-content: center; padding: 24px 16px 48px; }
+
+    .invite-card {
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .invite-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(160deg, rgba(240,196,208,0.18) 0%, rgba(249,232,200,0.12) 100%);
+      pointer-events: none;
+    }
+
+    .invite-card .badge {
+      display: inline-block;
+      background: var(--gold-light);
+      color: var(--gold);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+    }
+
+    .invite-card h1 {
+      font-size: clamp(1.5rem, 6vw, 2rem);
+      color: var(--primary-dark);
+      margin-bottom: 4px;
+    }
+
+    .invite-card .birthday-name {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 7vw, 2.6rem);
+      font-style: italic;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15;
+      margin: 6px 0 20px;
+    }
+
+    .details-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+      background: #FFF8F5;
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin: 24px 0;
+    }
+
+    .detail-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .detail-row .icon {
+      font-size: 1.1rem;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .detail-row .info strong {
+      display: block;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .detail-row .info span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .invite-note {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .btn-confirm {
+      font-size: 1.05rem;
+      padding: 18px 28px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="deco-header">🌸 🎂 🌸</div>
+
+    <div class="card invite-card pop-in">
+      <div class="badge">Convite Especial</div>
+
+      <h1>Você está convidado para</h1>
+
+      <p class="birthday-name">
+        <!-- PERSONALIZE: Coloque o nome da aniversariante -->
+        Aniversário da Maria
+      </p>
+
+      <div class="divider"></div>
+
+      <div class="details-grid">
+        <div class="detail-row">
+          <span class="icon">📅</span>
+          <div class="info">
+            <!-- PERSONALIZE: Data do evento -->
+            <strong>Sábado, 21 de Junho de 2025</strong>
+            <span>Confirme até 14 de Junho</span>
+          </div>
+        </div>
+        <div class="detail-row">
+          <span class="icon">🕖</span>
+          <div class="info">
+            <!-- PERSONALIZE: Horário -->
+            <strong>19h30</strong>
+            <span>Pontualidade é bem-vinda 😊</span>
+          </div>
+        </div>
+        <div class="detail-row">
+          <span class="icon">📍</span>
+          <div class="info">
+            <!-- PERSONALIZE: Local e endereço -->
+            <strong>Espaço Villa Festividades</strong>
+            <span>Rua das Flores, 123 — São Paulo, SP</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="invite-note">
+        Sua presença é o presente mais lindo que poderíamos receber. 💕<br>
+        Confirme abaixo para garantirmos tudo com carinho para você.
+      </p>
+
+      <a href="/form.html" class="btn btn-primary btn-confirm">
+        Confirmar Presença ✨
+      </a>
+    </div>
+  </div>
+</body>
+</html>

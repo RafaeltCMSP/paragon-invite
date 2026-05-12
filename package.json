@@ -1,0 +1,16 @@
+{
+  "name": "paragon-invite",
+  "version": "1.0.0",
+  "description": "Sistema de convite digital para aniversário com PIX",
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "mercadopago": "^2.3.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}

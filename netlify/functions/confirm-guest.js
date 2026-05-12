@@ -1,0 +1,39 @@
+const { createClient } = require('@supabase/supabase-js')
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
+
+exports.handler = async (event) => {
+  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers }
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
+
+  let body
+  try {
+    body = JSON.parse(event.body)
+  } catch {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) }
+  }
+
+  const { name, phone, wants_to_gift } = body
+
+  if (!name || !phone) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nome e telefone são obrigatórios' }) }
+  }
+
+  const { data, error } = await supabase
+    .from('guests')
+    .insert({ name: name.trim(), phone: phone.trim(), wants_to_gift: !!wants_to_gift, confirmed_at: new Date().toISOString() })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Supabase error:', error)
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Erro ao salvar confirmação' }) }
+  }
+
+  return { statusCode: 200, headers, body: JSON.stringify({ guest: data }) }
+}
