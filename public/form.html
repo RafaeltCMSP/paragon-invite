@@ -191,7 +191,7 @@
     // ---- Companions ----
     let companionCount = 0
 
-    document.getElementById('btn-add-companion').addEventListener('click', () => {
+    function addCompanion(prefill = {}) {
       const list = document.getElementById('companions-list')
       const i    = companionCount++
       const div  = document.createElement('div')
@@ -218,19 +218,27 @@
       `
       const checkbox    = div.querySelector('.companion-gift')
       const amountRow   = div.querySelector('.companion-amount-row')
-      const amountInput = div.querySelector('.companion-amount-input')
+      const compAmount  = div.querySelector('.companion-amount-input')
       checkbox.addEventListener('change', () => {
         amountRow.style.display = checkbox.checked ? 'block' : 'none'
-        if (checkbox.checked) amountInput.focus()
+        if (checkbox.checked) compAmount.focus()
       })
-      amountInput.addEventListener('input', (e) => {
+      compAmount.addEventListener('input', (e) => {
         let digits = e.target.value.replace(/\D/g, '')
         e.target.value = digits ? (parseInt(digits, 10) / 100).toFixed(2).replace('.', ',') : ''
       })
+      if (prefill.name)  div.querySelector('.companion-name-input').value = prefill.name
+      if (prefill.wants_to_gift) {
+        checkbox.checked = true
+        amountRow.style.display = 'block'
+        if (prefill.amount) compAmount.value = prefill.amount
+      }
       list.appendChild(div)
-      div.querySelector('.companion-name-input').focus()
       document.getElementById('btn-add-companion').style.display = 'none'
-    })
+      if (!prefill.name) div.querySelector('.companion-name-input').focus()
+    }
+
+    document.getElementById('btn-add-companion').addEventListener('click', () => addCompanion())
 
     function removeCompanion(i) {
       const el = document.getElementById(`companion-${i}`)
@@ -334,6 +342,18 @@
 
       setLoading(true)
 
+      localStorage.setItem('form_draft', JSON.stringify({
+        name,
+        phone: document.getElementById('phone').value,
+        wants_to_gift: wantsGift,
+        amount: wantsGift ? amountInput.value : '',
+        companions: getCompanions().map(c => ({
+          name:          c.name,
+          wants_to_gift: c.wants_to_gift,
+          amount:        c.wants_to_gift && c.amount ? c.amount.toFixed(2).replace('.', ',') : '',
+        })),
+      }))
+
       try {
         const guestRes  = await fetch('/api/confirm-guest', {
           method: 'POST',
@@ -343,6 +363,7 @@
         const guestData = await guestRes.json()
 
         if (guestRes.status === 409 && guestData.duplicate) {
+          localStorage.removeItem('form_draft')
           sessionStorage.setItem('guest_name', guestData.guest.name)
           sessionStorage.setItem('invite_url', guestData.guest.invite_url || '')
           sessionStorage.setItem('companions_invites', JSON.stringify(
@@ -376,6 +397,7 @@
         })
 
         if (pixPayers.length === 0) {
+          localStorage.removeItem('form_draft')
           window.location.href = '/success.html'
           return
         }
@@ -415,6 +437,20 @@
         setLoading(false)
       }
     })
+
+    // Restaura rascunho se a pessoa voltou após cancelar o PIX
+    ;(function restoreDraft() {
+      const draft = JSON.parse(localStorage.getItem('form_draft') || 'null')
+      if (!draft) return
+      if (draft.name)  document.getElementById('name').value  = draft.name
+      if (draft.phone) document.getElementById('phone').value = draft.phone
+      if (draft.wants_to_gift) {
+        giftCheck.checked = true
+        giftCheck.dispatchEvent(new Event('change'))
+        if (draft.amount) amountInput.value = draft.amount
+      }
+      ;(draft.companions || []).forEach(c => { if (c.name) addCompanion(c) })
+    })()
   </script>
 </body>
 </html>

@@ -182,6 +182,7 @@
             setTimeout(() => {
               if (isLast) {
                 localStorage.removeItem('pending_pix')
+                localStorage.removeItem('form_draft')
                 window.location.href = '/success.html'
               } else {
                 idx = i + 1
