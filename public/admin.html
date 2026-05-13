@@ -246,6 +246,20 @@
 
     .btn-view-ticket:hover { background: var(--primary); color: #fff; }
 
+    .btn-delete {
+      padding: 5px 12px;
+      background: #FEF2F2;
+      border: 1.5px solid #FECACA;
+      color: var(--error);
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      white-space: nowrap;
+    }
+    .btn-delete:hover { background: var(--error); color: #fff; border-color: var(--error); }
+
     /* Empty state */
     .empty-state {
       text-align: center;
@@ -765,8 +779,9 @@
 
         const inviteActions = g.invite_url
           ? `<button class="btn-copy-link" onclick="copyLink('${esc(g.invite_url)}')">📋 Copiar</button>
-             <a class="btn-view-ticket" href="${esc(g.invite_url)}" target="_blank">🎟️ Ver</a>`
-          : '<span style="color:var(--text-muted);font-size:0.8rem">—</span>'
+             <a class="btn-view-ticket" href="${esc(g.invite_url)}" target="_blank">🎟️ Ver</a>
+             <button class="btn-delete" onclick="deleteGuest('${g.id}', '${esc(g.name)}')">🗑️</button>`
+          : `<button class="btn-delete" onclick="deleteGuest('${g.id}', '${esc(g.name)}')">🗑️</button>`
 
         const companionRows = (g.companions || []).map(c => {
           const cpay       = c.payments?.[0]
@@ -832,6 +847,17 @@
           next = next.nextElementSibling
         }
       })
+    }
+
+    async function deleteGuest(id, name) {
+      if (!confirm(`Remover "${name}" e todos os dados vinculados (acompanhantes e pagamentos)?\n\nEssa ação não pode ser desfeita.`)) return
+      const res = await fetch(`/api/delete-guest?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': adminSecret },
+      })
+      if (!res.ok) { showToast('Erro ao remover convidado'); return }
+      showToast(`${name} removido ✓`)
+      loadGuests()
     }
 
     function copyLink(url) {
