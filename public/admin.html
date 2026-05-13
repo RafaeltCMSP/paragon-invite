@@ -246,6 +246,21 @@
 
     .btn-view-ticket:hover { background: var(--primary); color: #fff; }
 
+    .btn-cancel-pix {
+      padding: 3px 8px;
+      background: #FEF2F2;
+      border: 1.5px solid #FECACA;
+      color: var(--error);
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .btn-cancel-pix:hover { background: var(--error); color: #fff; border-color: var(--error); }
+
     .btn-delete {
       padding: 5px 12px;
       background: #FEF2F2;
@@ -766,9 +781,9 @@
         } else if (payStatus === 'approved') {
           statusBadge = '<span class="badge badge-paid">✓ Pago</span>'
         } else if (payStatus === 'pending') {
-          statusBadge = '<span class="badge badge-pending">Pendente</span>'
+          statusBadge = `<span class="badge badge-pending">Pendente</span> <button class="btn-cancel-pix" onclick="cancelPix('${pay.id}')">✕ Cancelar</button>`
         } else if (payStatus === 'rejected' || payStatus === 'cancelled') {
-          statusBadge = '<span class="badge badge-rejected">Recusado</span>'
+          statusBadge = '<span class="badge badge-rejected">Cancelado</span>'
         } else {
           statusBadge = '<span class="badge badge-no">—</span>'
         }
@@ -798,8 +813,8 @@
           let cStatus
           if (!c.wants_to_gift)                                       cStatus = '<span class="badge badge-no">Sem PIX</span>'
           else if (cpayStatus === 'approved')                         cStatus = '<span class="badge badge-paid">✓ Pago</span>'
-          else if (cpayStatus === 'pending')                          cStatus = '<span class="badge badge-pending">Pendente</span>'
-          else if (cpayStatus === 'rejected' || cpayStatus === 'cancelled') cStatus = '<span class="badge badge-rejected">Recusado</span>'
+          else if (cpayStatus === 'pending')                          cStatus = `<span class="badge badge-pending">Pendente</span> <button class="btn-cancel-pix" onclick="cancelPix('${cpay.id}')">✕ Cancelar</button>`
+          else if (cpayStatus === 'rejected' || cpayStatus === 'cancelled') cStatus = '<span class="badge badge-rejected">Cancelado</span>'
           else                                                        cStatus = '<span class="badge badge-no">—</span>'
 
           const cActions = c.invite_url
@@ -847,6 +862,18 @@
           next = next.nextElementSibling
         }
       })
+    }
+
+    async function cancelPix(paymentId) {
+      if (!confirm('Marcar este PIX como cancelado?')) return
+      const res = await fetch('/api/update-payment-status', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        body:    JSON.stringify({ payment_id: paymentId, status: 'cancelled' }),
+      })
+      if (!res.ok) { showToast('Erro ao cancelar PIX'); return }
+      showToast('PIX cancelado ✓')
+      loadGuests()
     }
 
     async function deleteGuest(id, name) {
