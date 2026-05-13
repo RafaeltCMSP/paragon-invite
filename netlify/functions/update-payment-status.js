@@ -24,17 +24,29 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'payment_id e status válido são obrigatórios' }) }
   }
 
+  console.log('update-payment-status → payment_id:', payment_id, 'status:', status)
+
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-  const { error } = await supabase
+  const updateFields = { status }
+  if (status === 'approved') updateFields.paid_at = new Date().toISOString()
+
+  const { data, error } = await supabase
     .from('payments')
-    .update({ status, ...(status === 'approved' ? { paid_at: new Date().toISOString() } : { paid_at: null }) })
+    .update(updateFields)
     .eq('id', payment_id)
+    .select('id, status')
 
   if (error) {
     console.error('Update error:', error)
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Erro ao atualizar status' }) }
   }
 
-  return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) }
+  if (!data?.length) {
+    console.error('Nenhuma linha atualizada para payment_id:', payment_id)
+    return { statusCode: 404, headers, body: JSON.stringify({ error: 'Pagamento não encontrado' }) }
+  }
+
+  console.log('Atualizado com sucesso:', data[0])
+  return { statusCode: 200, headers, body: JSON.stringify({ ok: true, payment: data[0] }) }
 }

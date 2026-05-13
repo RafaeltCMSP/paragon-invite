@@ -866,14 +866,20 @@
 
     async function cancelPix(paymentId) {
       if (!confirm('Marcar este PIX como cancelado?')) return
-      const res = await fetch('/api/update-payment-status', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
-        body:    JSON.stringify({ payment_id: paymentId, status: 'cancelled' }),
-      })
-      if (!res.ok) { showToast('Erro ao cancelar PIX'); return }
-      showToast('PIX cancelado ✓')
-      loadGuests()
+      try {
+        const res  = await fetch('/api/update-payment-status', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+          body:    JSON.stringify({ payment_id: paymentId, status: 'cancelled' }),
+        })
+        const data = await res.json()
+        if (!res.ok) { showToast(data.error || 'Erro ao cancelar PIX'); return }
+        showToast('PIX cancelado ✓')
+        loadGuests()
+      } catch (err) {
+        console.error('cancelPix error:', err)
+        showToast('Erro de conexão')
+      }
     }
 
     async function deleteGuest(id, name) {
