@@ -309,6 +309,84 @@
     }
     .btn-scan:hover { opacity: 0.88; }
 
+    /* ===== Mobile ===== */
+    @media (max-width: 660px) {
+      .admin-content { padding: 16px 12px 40px; }
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+
+      .controls { flex-direction: column; }
+      .search-input, .btn-csv, .btn-scan { width: 100%; box-sizing: border-box; }
+
+      .table-wrap { background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+      .table-scroll { overflow-x: visible; }
+      table { min-width: unset; }
+      thead { display: none; }
+
+      tbody tr[data-search] {
+        display: block;
+        background: #fff;
+        border-radius: 14px;
+        margin-bottom: 6px;
+        box-shadow: 0 2px 8px rgba(201,116,138,0.1);
+        border: 1px solid #F0E8EC;
+        overflow: hidden;
+      }
+
+      tbody tr[data-search] td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-bottom: 1px solid #F9F3F6;
+        font-size: 0.88rem;
+      }
+
+      tbody tr[data-search] td:last-child { border-bottom: none; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+      tbody tr[data-search] td[data-hide] { display: none; }
+      tbody tr[data-search] td[data-label]::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+        min-width: 88px;
+      }
+
+      .companion-row {
+        display: block;
+        background: #FAF6F8;
+        border-left: 3px solid var(--primary);
+        margin: 0 0 6px 12px;
+        border-radius: 0 10px 10px 0;
+        overflow: hidden;
+      }
+
+      .companion-row td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 14px;
+        border-bottom: 1px solid #F5EFF2;
+        font-size: 0.82rem;
+        background: transparent;
+      }
+
+      .companion-row td:last-child { border-bottom: none; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+      .companion-row td[data-hide] { display: none; }
+      .companion-row td[data-label]::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+        min-width: 88px;
+      }
+    }
+
     /* Scanner modal */
     #scanner-modal {
       display: none;
@@ -716,28 +794,28 @@
 
           return `
           <tr class="companion-row">
-            <td></td>
-            <td class="td-name"><span class="companion-arrow">↳</span>${esc(c.name)}</td>
-            <td style="color:var(--text-muted);font-size:0.82rem">—</td>
-            <td class="td-date">${cDate}</td>
-            <td>${cCheckinBadge}</td>
-            <td>${c.wants_to_gift ? '<span class="badge badge-paid">Sim</span>' : '<span class="badge badge-no">Não</span>'}</td>
-            <td style="font-weight:700;color:var(--text)">${cAmount}</td>
-            <td>${cStatus}</td>
+            <td data-hide></td>
+            <td data-label="Acomp." class="td-name"><span class="companion-arrow">↳</span>${esc(c.name)}</td>
+            <td data-hide style="color:var(--text-muted);font-size:0.82rem">—</td>
+            <td data-hide class="td-date">${cDate}</td>
+            <td data-label="Presença">${cCheckinBadge}</td>
+            <td data-label="PIX">${c.wants_to_gift ? '<span class="badge badge-paid">Sim</span>' : '<span class="badge badge-no">Não</span>'}</td>
+            <td data-label="Valor" style="font-weight:700;color:var(--text)">${cAmount}</td>
+            <td data-label="Pagamento">${cStatus}</td>
             <td style="display:flex;gap:6px;flex-wrap:wrap">${cActions}</td>
           </tr>`
         }).join('')
 
         return `
           <tr data-search="${esc(g.name.toLowerCase())} ${esc(g.phone)}">
-            <td style="color:var(--text-muted);font-size:0.8rem">${i + 1}</td>
-            <td class="td-name">${esc(g.name)}${g.companions?.length ? `<span style="color:var(--text-muted);font-size:0.75rem;font-weight:400;margin-left:6px">+${g.companions.length}</span>` : ''}</td>
-            <td class="td-phone"><a href="${waLink}" target="_blank" rel="noopener">${esc(g.phone)}</a></td>
-            <td class="td-date">${date}</td>
-            <td>${checkinBadge}</td>
-            <td>${g.wants_to_gift ? '<span class="badge badge-paid">Sim</span>' : '<span class="badge badge-no">Não</span>'}</td>
-            <td style="font-weight:700;color:var(--text)">${amount}</td>
-            <td>${statusBadge}</td>
+            <td data-hide style="color:var(--text-muted);font-size:0.8rem">${i + 1}</td>
+            <td data-label="Nome" class="td-name">${esc(g.name)}${g.companions?.length ? `<span style="color:var(--text-muted);font-size:0.75rem;font-weight:400;margin-left:6px">+${g.companions.length}</span>` : ''}</td>
+            <td data-label="WhatsApp" class="td-phone"><a href="${waLink}" target="_blank" rel="noopener">${esc(g.phone)}</a></td>
+            <td data-label="Confirmado" class="td-date">${date}</td>
+            <td data-label="Presença">${checkinBadge}</td>
+            <td data-label="PIX">${g.wants_to_gift ? '<span class="badge badge-paid">Sim</span>' : '<span class="badge badge-no">Não</span>'}</td>
+            <td data-label="Valor" style="font-weight:700;color:var(--text)">${amount}</td>
+            <td data-label="Pagamento">${statusBadge}</td>
             <td style="display:flex;gap:6px;flex-wrap:wrap">${inviteActions}</td>
           </tr>${companionRows}`
       }).join('')
