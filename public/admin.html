@@ -822,10 +822,15 @@
     }
 
     function filterTable() {
-      const q     = document.getElementById('search-input').value.toLowerCase().trim()
-      const rows  = document.querySelectorAll('#table-body tr[data-search]')
-      rows.forEach(row => {
-        row.style.display = row.dataset.search.includes(q) ? '' : 'none'
+      const q = document.getElementById('search-input').value.toLowerCase().trim()
+      document.querySelectorAll('#table-body tr[data-search]').forEach(row => {
+        const show = row.dataset.search.includes(q)
+        row.style.display = show ? '' : 'none'
+        let next = row.nextElementSibling
+        while (next && next.classList.contains('companion-row')) {
+          next.style.display = show ? '' : 'none'
+          next = next.nextElementSibling
+        }
       })
     }
 
