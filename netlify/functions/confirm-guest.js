@@ -26,6 +26,26 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nome e telefone são obrigatórios' }) }
   }
 
+  // Bloqueia cadastro duplicado pelo telefone
+  const { data: existing } = await supabase
+    .from('guests')
+    .select('id, name, invite_url')
+    .eq('phone', phone.trim())
+    .maybeSingle()
+
+  if (existing) {
+    const { data: existingComps } = await supabase
+      .from('companions')
+      .select('name, invite_url')
+      .eq('guest_id', existing.id)
+
+    return {
+      statusCode: 409,
+      headers,
+      body: JSON.stringify({ duplicate: true, guest: existing, companions: existingComps || [] }),
+    }
+  }
+
   const inviteToken = randomUUID()
   const baseUrl     = process.env.BASE_URL || 'http://localhost:8888'
   const inviteUrl   = `${baseUrl}/convite?token=${inviteToken}`

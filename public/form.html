@@ -341,6 +341,19 @@
           body: JSON.stringify({ name, phone, wants_to_gift: wantsGift, companions: getCompanions() }),
         })
         const guestData = await guestRes.json()
+
+        if (guestRes.status === 409 && guestData.duplicate) {
+          sessionStorage.setItem('guest_name', guestData.guest.name)
+          sessionStorage.setItem('invite_url', guestData.guest.invite_url || '')
+          sessionStorage.setItem('companions_invites', JSON.stringify(
+            (guestData.companions || []).map(c => ({ name: c.name, invite_url: c.invite_url }))
+          ))
+          errorBanner.innerHTML = `Você já está confirmado, <strong>${guestData.guest.name.split(' ')[0]}</strong>! <a href="/success.html" style="color:var(--primary);font-weight:700">Ver meus convites →</a>`
+          errorBanner.classList.add('visible')
+          setLoading(false)
+          return
+        }
+
         if (!guestRes.ok) throw new Error(guestData.error || 'Erro ao confirmar presença')
 
         sessionStorage.setItem('guest_name',  name)
