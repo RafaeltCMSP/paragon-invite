@@ -186,6 +186,7 @@
     </div>
   </div>
 
+  <script src="/assets/pix-recovery.js"></script>
   <script>
     // ---- Companions ----
     let companionCount = 0
@@ -393,6 +394,7 @@
 
         sessionStorage.setItem('pending_payments', JSON.stringify(pendingPayments))
         sessionStorage.setItem('payment_idx', '0')
+        localStorage.setItem('pending_pix', JSON.stringify({ payments: pendingPayments, saved_at: Date.now() }))
         window.location.href = '/payment.html'
 
       } catch (err) {

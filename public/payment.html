@@ -104,6 +104,17 @@
     let idx      = parseInt(sessionStorage.getItem('payment_idx') || '0', 10)
 
     if (!payments) {
+      // Tenta recuperar do localStorage (usuário voltou depois de sair da aba)
+      const stored = JSON.parse(localStorage.getItem('pending_pix') || 'null')
+      if (stored?.payments?.length) {
+        payments = stored.payments
+        idx = 0
+        sessionStorage.setItem('pending_payments', JSON.stringify(payments))
+        sessionStorage.setItem('payment_idx', '0')
+      }
+    }
+
+    if (!payments) {
       // Legacy fallback
       const pid = sessionStorage.getItem('payment_id')
       const qr  = sessionStorage.getItem('qr_code')
@@ -170,6 +181,7 @@
               : `✅ Pago! Próximo: <strong>${payments[i + 1].label}</strong>...`
             setTimeout(() => {
               if (isLast) {
+                localStorage.removeItem('pending_pix')
                 window.location.href = '/success.html'
               } else {
                 idx = i + 1
@@ -180,6 +192,7 @@
           } else if (data.status === 'rejected' || data.status === 'cancelled') {
             clearInterval(pollTimer)
             clearInterval(countdownTimer)
+            localStorage.removeItem('pending_pix')
             const badge = document.getElementById('status-badge')
             badge.style.background = '#FEF2F2'
             badge.style.color      = 'var(--error)'
