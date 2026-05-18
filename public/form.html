@@ -192,6 +192,7 @@
     const _urlParams = new URLSearchParams(location.search)
     if (_urlParams.get('individual') === '1') {
       document.querySelector('.companions-section').style.display = 'none'
+      document.querySelector('.back-link').href = '/?individual=1'
     }
 
     // ---- Companions ----
