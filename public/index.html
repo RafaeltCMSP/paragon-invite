@@ -150,5 +150,10 @@
     </div>
   </div>
   <script src="/assets/pix-recovery.js"></script>
+  <script>
+    if (new URLSearchParams(location.search).get('individual') === '1') {
+      document.querySelector('.btn-confirm').href = '/form.html?individual=1'
+    }
+  </script>
 </body>
 </html>
