@@ -188,6 +188,12 @@
 
   <script src="/assets/pix-recovery.js"></script>
   <script>
+    // ---- Modo individual (sem acompanhantes) ----
+    const _urlParams = new URLSearchParams(location.search)
+    if (_urlParams.get('individual') === '1') {
+      document.querySelector('.companions-section').style.display = 'none'
+    }
+
     // ---- Companions ----
     let companionCount = 0
 
