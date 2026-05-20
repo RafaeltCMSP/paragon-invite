@@ -261,6 +261,37 @@
     }
     .btn-cancel-pix:hover { background: var(--error); color: #fff; border-color: var(--error); }
 
+    .btn-verify-pix {
+      padding: 3px 8px;
+      background: #EFF6FF;
+      border: 1.5px solid #BFDBFE;
+      color: #2563EB;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .btn-verify-pix:hover { background: #2563EB; color: #fff; border-color: #2563EB; }
+    .btn-verify-pix:disabled { opacity: 0.5; cursor: wait; }
+
+    .btn-mark-paid {
+      padding: 3px 8px;
+      background: #EDFBF4;
+      border: 1.5px solid #6EE7B7;
+      color: var(--success);
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .btn-mark-paid:hover { background: var(--success); color: #fff; border-color: var(--success); }
+
     .btn-delete {
       padding: 5px 12px;
       background: #FEF2F2;
@@ -611,6 +642,7 @@
         />
         <button class="btn-csv" onclick="downloadCSV()">⬇️ Exportar CSV</button>
         <button class="btn-csv" style="background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark)" onclick="loadGuests()">↺ Atualizar</button>
+        <button class="btn-csv" id="btn-sync-all" style="background:#EFF6FF;border-color:#BFDBFE;color:#2563EB" onclick="syncAllPending()">🔄 Sincronizar Pendentes</button>
         <button class="btn-scan" onclick="openScanner()">📷 Recepcionar</button>
       </div>
 
@@ -713,6 +745,7 @@
 
       renderTable(allGuests)
       renderStats(allGuests)
+      autoSyncPending()
     }
 
     function logout() {
@@ -781,7 +814,7 @@
         } else if (payStatus === 'approved') {
           statusBadge = '<span class="badge badge-paid">✓ Pago</span>'
         } else if (payStatus === 'pending') {
-          statusBadge = `<span class="badge badge-pending">Pendente</span> <button class="btn-cancel-pix" onclick="cancelPix('${pay.id}')">✕ Cancelar</button>`
+          statusBadge = `<span class="badge badge-pending">Pendente</span> <button class="btn-verify-pix" onclick="syncPayment('${pay.id}', this)">🔄</button> <button class="btn-mark-paid" onclick="markAsPaid('${pay.id}')">✓ Pago</button> <button class="btn-cancel-pix" onclick="cancelPix('${pay.id}')">✕</button>`
         } else if (payStatus === 'rejected' || payStatus === 'cancelled') {
           statusBadge = '<span class="badge badge-rejected">Cancelado</span>'
         } else {
@@ -813,7 +846,7 @@
           let cStatus
           if (!c.wants_to_gift)                                       cStatus = '<span class="badge badge-no">Sem PIX</span>'
           else if (cpayStatus === 'approved')                         cStatus = '<span class="badge badge-paid">✓ Pago</span>'
-          else if (cpayStatus === 'pending')                          cStatus = `<span class="badge badge-pending">Pendente</span> <button class="btn-cancel-pix" onclick="cancelPix('${cpay.id}')">✕ Cancelar</button>`
+          else if (cpayStatus === 'pending')                          cStatus = `<span class="badge badge-pending">Pendente</span> <button class="btn-verify-pix" onclick="syncPayment('${cpay.id}', this)">🔄</button> <button class="btn-mark-paid" onclick="markAsPaid('${cpay.id}')">✓ Pago</button> <button class="btn-cancel-pix" onclick="cancelPix('${cpay.id}')">✕</button>`
           else if (cpayStatus === 'rejected' || cpayStatus === 'cancelled') cStatus = '<span class="badge badge-rejected">Cancelado</span>'
           else                                                        cStatus = '<span class="badge badge-no">—</span>'
 
@@ -862,6 +895,75 @@
           next = next.nextElementSibling
         }
       })
+    }
+
+    async function syncPayment(paymentId, btn) {
+      if (btn) { btn.disabled = true; btn.textContent = '⏳' }
+      try {
+        const res  = await fetch('/api/sync-payment', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+          body:    JSON.stringify({ payment_id: paymentId }),
+        })
+        const data = await res.json()
+        if (!res.ok) { showToast(data.error || 'Erro ao sincronizar'); return }
+        if (data.changed) {
+          showToast(`Status atualizado: ${data.status} ✓`)
+          loadGuests()
+        } else {
+          showToast('Status já está atualizado ✓')
+          if (btn) { btn.disabled = false; btn.textContent = '🔄' }
+        }
+      } catch (err) {
+        console.error('syncPayment error:', err)
+        showToast('Erro de conexão')
+        if (btn) { btn.disabled = false; btn.textContent = '🔄' }
+      }
+    }
+
+    async function markAsPaid(paymentId) {
+      if (!confirm('Marcar este pagamento como PAGO manualmente?\n\nUse apenas se tiver certeza que o PIX foi recebido.')) return
+      try {
+        const res  = await fetch('/api/update-payment-status', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+          body:    JSON.stringify({ payment_id: paymentId, status: 'approved' }),
+        })
+        const data = await res.json()
+        if (!res.ok) { showToast(data.error || 'Erro ao atualizar'); return }
+        showToast('Pagamento marcado como pago ✓')
+        loadGuests()
+      } catch (err) {
+        console.error('markAsPaid error:', err)
+        showToast('Erro de conexão')
+      }
+    }
+
+    async function syncAllPending() {
+      const btn = document.getElementById('btn-sync-all')
+      btn.disabled = true
+      btn.textContent = '⏳ Sincronizando...'
+      try {
+        const res  = await fetch('/api/sync-payment', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+          body:    JSON.stringify({ sync_all: true }),
+        })
+        const data = await res.json()
+        if (!res.ok) { showToast(data.error || 'Erro ao sincronizar'); return }
+        if (data.synced > 0) {
+          showToast(`${data.synced} pagamento(s) atualizado(s) ✓`)
+          loadGuests()
+        } else {
+          showToast('Nenhuma alteração encontrada ✓')
+        }
+      } catch (err) {
+        console.error('syncAllPending error:', err)
+        showToast('Erro de conexão')
+      } finally {
+        btn.disabled = false
+        btn.textContent = '🔄 Sincronizar Pendentes'
+      }
     }
 
     async function cancelPix(paymentId) {
@@ -1057,6 +1159,22 @@
       document.getElementById('checkin-result').classList.remove('open')
     }
 
+    // Sincroniza pendentes em background após carregar a lista
+    async function autoSyncPending() {
+      try {
+        const res = await fetch('/api/sync-payment', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+          body:    JSON.stringify({ sync_all: true }),
+        })
+        const data = await res.json()
+        if (data.synced > 0) {
+          showToast(`${data.synced} pagamento(s) sincronizado(s) automaticamente ✓`)
+          loadGuests()
+        }
+      } catch { /* silencioso */ }
+    }
+
     // ---- Auto-login if session exists ----
     ;(async () => {
       const saved = sessionStorage.getItem('admin_secret')
@@ -1070,6 +1188,7 @@
       document.getElementById('dashboard').style.display    = 'flex'
       renderTable(allGuests)
       renderStats(allGuests)
+      autoSyncPending()
     })()
   </script>
 </body>
